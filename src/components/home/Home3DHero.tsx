@@ -145,7 +145,19 @@ export default function Home3DHero({ onNavigate }: Home3DHeroProps) {
   const [strobesEnabled, setStrobesEnabled] = useState(true);
   const [beamEnabled, setBeamEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [speechPos, setSpeechPos] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
+  const speechBubbleRef = useRef<HTMLDivElement | null>(null);
+
+  const handleAmbulanceScreenPos = useCallback((x: number, y: number, visible: boolean) => {
+    const el = speechBubbleRef.current;
+    if (el) {
+      if (!visible) {
+        if (el.style.display !== 'none') el.style.display = 'none';
+      } else {
+        if (el.style.display !== 'block') el.style.display = 'block';
+        el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -100%)`;
+      }
+    }
+  }, []);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sirenNodesRef = useRef<{
@@ -364,9 +376,7 @@ export default function Home3DHero({ onNavigate }: Home3DHeroProps) {
           currentSection={currentSection}
           strobesEnabled={strobesEnabled}
           beamEnabled={beamEnabled}
-          onAmbulanceScreenPos={(x, y, visible) => {
-            setSpeechPos({ x, y, visible });
-          }}
+          onAmbulanceScreenPos={handleAmbulanceScreenPos}
         />
         {/* Subtle Atmospheric Vignette */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30 pointer-events-none" />
@@ -397,23 +407,21 @@ export default function Home3DHero({ onNavigate }: Home3DHeroProps) {
       {/* ===================================================================== */}
       {/* 4. FLOATING 3D SPEECH BUBBLE OVER THE 3D AMBULANCE */}
       {/* ===================================================================== */}
-      {speechPos.visible && (
-        <div
-          className="absolute z-30 pointer-events-none transition-transform duration-75 ease-out"
-          style={{
-            left: `${speechPos.x}px`,
-            top: `${speechPos.y}px`,
-            transform: 'translate(-50%, -100%)',
-          }}
-        >
-          <div className="relative rounded-2xl border-3 border-ink bg-white px-3.5 py-1.5 shadow-panel-sm animate-pop-in">
-            <span className="font-display text-xs sm:text-sm tracking-wider text-ink font-bold whitespace-nowrap">
-              {activeMeta.speech}
-            </span>
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-ink" />
-          </div>
+      <div
+        ref={speechBubbleRef}
+        className="absolute top-0 left-0 z-30 pointer-events-none transition-transform duration-75 ease-out"
+        style={{
+          display: 'none',
+          willChange: 'transform',
+        }}
+      >
+        <div className="relative rounded-2xl border-3 border-ink bg-white px-3.5 py-1.5 shadow-panel-sm animate-pop-in">
+          <span className="font-display text-xs sm:text-sm tracking-wider text-ink font-bold whitespace-nowrap">
+            {activeMeta.speech}
+          </span>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-ink" />
         </div>
-      )}
+      </div>
 
       {/* ===================================================================== */}
       {/* 5. HORIZONTAL SLIDING CONTENT TRACK (5 SECTIONS) */}

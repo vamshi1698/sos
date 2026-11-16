@@ -49,11 +49,17 @@ export default function ThreeAmbulanceScene({
     const initialConfig = SECTIONS_CONFIG[0];
     camera.position.set(...initialConfig.camPos);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+      stencil: false,
+      depth: true,
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
@@ -411,13 +417,6 @@ export default function ThreeAmbulanceScene({
       bulb.position.set(isLeft ? 1.5 : -1.5, 5.52, 0);
       lamp.add(bulb);
 
-      // Downward conical street spotlight
-      const spot = new THREE.SpotLight(0xffe4b5, 2.2, 13, Math.PI / 4.5, 0.55, 1.2);
-      spot.position.set(isLeft ? 1.5 : -1.5, 5.5, 0);
-      spot.target.position.set(isLeft ? 1.5 : -1.5, 0, 0);
-      lamp.add(spot);
-      lamp.add(spot.target);
-
       return lamp;
     }
 
@@ -480,9 +479,8 @@ export default function ThreeAmbulanceScene({
     const buildingsGroup = new THREE.Group();
     scene.add(buildingsGroup);
 
-    // Arrays to collect rooftop aviation beacon lights for blinking animation
+    // Arrays to collect rooftop aviation beacon meshes for blinking animation
     const beaconMeshes: THREE.Mesh[] = [];
-    const beaconLights: THREE.PointLight[] = [];
 
     // Window canvas texture generator for illuminated city skyline
     function createBuildingWindowTexture(seed = 0): THREE.CanvasTexture {
@@ -648,11 +646,6 @@ export default function ThreeAmbulanceScene({
         beaconMesh.position.set(0, cfg.h + 4.55, 0);
         bGroup.add(beaconMesh);
         beaconMeshes.push(beaconMesh);
-
-        const beaconLight = new THREE.PointLight(0xff2222, 2.5, 8, 2);
-        beaconLight.position.set(0, cfg.h + 4.6, 0);
-        bGroup.add(beaconLight);
-        beaconLights.push(beaconLight);
       }
 
       return bGroup;
@@ -1332,44 +1325,10 @@ export default function ThreeAmbulanceScene({
     carBlue.rotation.y = 0;
     trafficGroup.add(carBlue);
 
-    // --- 8. Section 4: Light Beams / Speed Streak Trails ---
+    // --- 8. Section 4: Speed Trails (Removed per request) ---
     const lightTrailsGroup = new THREE.Group();
+    lightTrailsGroup.visible = false;
     scene.add(lightTrailsGroup);
-
-    const trailRedGeo = new THREE.CylinderGeometry(0.08, 0.02, 10, 8);
-    trailRedGeo.rotateX(Math.PI / 2);
-    const trailRedMat = new THREE.MeshBasicMaterial({
-      color: 0xff3b30,
-      transparent: true,
-      opacity: 0.85,
-    });
-    const trailRed = new THREE.Mesh(trailRedGeo, trailRedMat);
-    trailRed.position.set(0.45, 2.05, -5.2);
-    lightTrailsGroup.add(trailRed);
-
-    const trailBlueGeo = new THREE.CylinderGeometry(0.08, 0.02, 10, 8);
-    trailBlueGeo.rotateX(Math.PI / 2);
-    const trailBlueMat = new THREE.MeshBasicMaterial({
-      color: 0x0088ff,
-      transparent: true,
-      opacity: 0.85,
-    });
-    const trailBlue = new THREE.Mesh(trailBlueGeo, trailBlueMat);
-    trailBlue.position.set(-0.45, 2.05, -5.2);
-    lightTrailsGroup.add(trailBlue);
-
-    // Extra road streaks
-    for (let s = -1; s <= 1; s += 2) {
-      const streakMat = new THREE.MeshBasicMaterial({
-        color: s === 1 ? 0xff2222 : 0x0088ff,
-        transparent: true,
-        opacity: 0.5,
-      });
-      const streak = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 14), streakMat);
-      streak.rotation.x = -Math.PI / 2;
-      streak.position.set(s * 0.9, 0.04, -7.0);
-      lightTrailsGroup.add(streak);
-    }
 
     // --- 9. Section 5: Hospital Building with Glowing Neon EMERGENCY Sign (Reference: media_1794819686574_69836512.jpg) ---
     const hospitalGroup = new THREE.Group();
@@ -1541,18 +1500,10 @@ export default function ThreeAmbulanceScene({
     signMesh.rotation.y = Math.PI / 2;
     hospitalSceneGroup.add(signMesh);
 
-    // Red neon point lights casting vibrant red glow across facade & ground
-    const neonLight1 = new THREE.PointLight(0xff1744, 7.0, 14, 1.2);
-    neonLight1.position.set(-0.7, 3.65, -3.2);
-    hospitalSceneGroup.add(neonLight1);
-
-    const neonLight2 = new THREE.PointLight(0xff1744, 8.5, 15, 1.2);
-    neonLight2.position.set(-0.7, 3.65, -0.4);
-    hospitalSceneGroup.add(neonLight2);
-
-    const neonLight3 = new THREE.PointLight(0xff1744, 7.0, 14, 1.2);
-    neonLight3.position.set(-0.7, 3.65, 2.4);
-    hospitalSceneGroup.add(neonLight3);
+    // Red neon point light casting vibrant red glow across facade & ground
+    const neonLight = new THREE.PointLight(0xff1744, 9.0, 18, 1.2);
+    neonLight.position.set(-0.7, 3.65, -0.4);
+    hospitalSceneGroup.add(neonLight);
 
     // Ground Floor Illuminated Glass Doors & Lobby Windows (matching reference image media_1794819686574_69836512.jpg)
     function createEmergencyGlassDoorsTexture(): THREE.CanvasTexture {
@@ -1762,9 +1713,6 @@ export default function ThreeAmbulanceScene({
       currentCamTarget.set(...targetConfig.camPos);
       currentLookAt.set(...targetConfig.lookAt);
       camera.position.lerp(currentCamTarget, 0.045);
-
-      const lookTarget = new THREE.Vector3();
-      lookTarget.lerpVectors(camera.getWorldDirection(new THREE.Vector3()).add(camera.position), currentLookAt, 0.045);
       camera.lookAt(currentLookAt);
 
       // 2. Smooth Ambulance Position & Rotation
@@ -1896,11 +1844,6 @@ export default function ThreeAmbulanceScene({
         if (carBlue.position.z > 32) carBlue.position.z = -22;
       }
 
-      // Animate Light Trails to stream behind ambulance in Section 4
-      if (targetConfig.showLightTrails) {
-        lightTrailsGroup.position.set(ambulanceGroup.position.x, ambulanceGroup.position.y, ambulanceGroup.position.z);
-        lightTrailsGroup.rotation.y = ambulanceGroup.rotation.y;
-      }
 
       // 3D SAFE ARRIVAL badge floating over the ambulance in Section 5 (media_1794819686574_69836512.jpg)
       if (targetConfig.showHospital) {
@@ -1938,7 +1881,6 @@ export default function ThreeAmbulanceScene({
       // Animate Rooftop Aviation Beacon Blinking
       const beaconOn = Math.floor(elapsed * 2.2) % 2 === 0;
       beaconMeshes.forEach((bm) => (bm.visible = beaconOn));
-      beaconLights.forEach((bl) => (bl.intensity = beaconOn ? 2.5 : 0.05));
 
       // 7. Calculate Speech Bubble 2D Projection
       if (posCallback) {
