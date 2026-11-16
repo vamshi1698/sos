@@ -32,7 +32,7 @@ export const SECTIONS_CONFIG: SceneSectionConfig[] = [
     lookAt: [-0.3, 0.85, 0.2],
     ambulancePos: [1.9, 0, 0.4],
     ambulanceRotY: 0,
-    speed: 0.25,
+    speed: 1.8,
     showTraffic: false,
     showLightTrails: false,
     showHospital: false,
