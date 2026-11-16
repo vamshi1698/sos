@@ -14,18 +14,26 @@ const LINKS: { view: View; label: string; badge?: string }[] = [
 ];
 
 export default function Navbar({ view, onNavigate }: NavbarProps) {
+  const isHome = view === 'home';
+
   return (
-    <header className="sticky top-0 z-50 border-b-4 border-ink bg-ink text-comic-cream">
+    <header
+      className={`${
+        isHome
+          ? 'absolute top-0 inset-x-0 z-50 bg-gradient-to-b from-black/70 via-black/20 to-transparent border-none'
+          : 'sticky top-0 z-50 border-b-4 border-ink bg-ink'
+      } text-comic-cream transition-all duration-300`}
+    >
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <button
           onClick={() => onNavigate('home')}
           className="flex items-center gap-2 transition-transform hover:-rotate-2"
           aria-label="Pranrath home"
         >
-          <span className="flex h-10 w-10 items-center justify-center border-4 border-ink bg-comic-red shadow-panel-sm">
+          <span className="flex h-10 w-10 items-center justify-center border-2 border-white/20 bg-comic-red shadow-panel-sm rounded-lg">
             <Ambulance className="h-6 w-6 text-comic-cream" strokeWidth={2.5} />
           </span>
-          <span className="font-display text-2xl tracking-wider text-comic-yellow">Pranrath</span>
+          <span className="font-display text-2xl tracking-wider text-comic-yellow drop-shadow-sm">Pranrath</span>
         </button>
 
         <nav className="flex flex-wrap items-center gap-2" aria-label="Main">
@@ -37,10 +45,10 @@ export default function Navbar({ view, onNavigate }: NavbarProps) {
                 id={`nav-${link.view}`}
                 onClick={() => onNavigate(link.view)}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex items-center gap-1.5 border-2 px-3 py-1.5 font-body text-sm font-bold uppercase tracking-wide transition-all ${
+                className={`relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-body text-sm font-bold uppercase tracking-wide transition-all ${
                   active
                     ? 'border-comic-yellow bg-comic-yellow text-ink shadow-panel-sm'
-                    : 'border-transparent text-comic-cream hover:border-comic-yellow hover:text-comic-yellow'
+                    : 'border-transparent text-comic-cream hover:border-comic-yellow/50 hover:text-comic-yellow'
                 }`}
               >
                 {link.view === 'simulation' && <Zap className="h-4 w-4 text-comic-red fill-comic-red" />}

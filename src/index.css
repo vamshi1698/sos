@@ -284,6 +284,14 @@
   .driver-popover.driverjs-theme .driver-popover-arrow-side-bottom {
     border-bottom-color: #1c1c1c !important;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
