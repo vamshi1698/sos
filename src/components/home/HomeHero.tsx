@@ -18,7 +18,7 @@ export default function HomeHero({ onNavigate }: HomeHeroProps) {
             <span className="text-comic-red [text-shadow:3px_3px_0_#fff28a]">fast</span> ambulance.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-comic-cream/90 sm:text-lg">
-            RapidRelay routes phone, WhatsApp, app and API requests into one dispatch queue, so a
+            Pranrath routes phone, WhatsApp, app and API requests into one dispatch queue, so a
             human coordinator can find a suitable ambulance and keep every trip visible.
           </p>
 

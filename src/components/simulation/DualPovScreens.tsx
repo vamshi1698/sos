@@ -92,7 +92,7 @@ export default function DualPovScreens({
           <div className="min-h-[380px] rounded-[18px] bg-slate-50 p-3 text-ink flex flex-col justify-between overflow-hidden">
             {/* Top Bar */}
             <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 border-b pb-1">
-              <span>RapidRelay SOS App</span>
+              <span>Pranrath SOS App</span>
               <span className="flex items-center gap-1 text-emerald-600 font-mono">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {currentSimStep >= 2 ? 'GPS LOCKED' : 'SEARCHING GPS'}
@@ -469,7 +469,7 @@ export default function DualPovScreens({
 
             {/* In-Cab Footer */}
             <div className="border-t border-emerald-800/60 pt-1 text-center text-[9px] text-emerald-400">
-              RapidRelay In-Cab MDT Navigation
+              Pranrath In-Cab MDT Navigation
             </div>
           </div>
         </div>
