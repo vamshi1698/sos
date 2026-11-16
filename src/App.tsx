@@ -49,9 +49,9 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`flex flex-col ${view === 'home' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'}`}>
       <Navbar view={view} onNavigate={navigate} />
-      <main className="flex-1">
+      <main className={`flex-1 ${view === 'home' ? 'h-full min-h-0 overflow-hidden relative' : ''}`}>
         {view === 'home' && <HomePage onNavigate={navigate} />}
         {view === 'request' && <RequestPage onCreate={dispatch.createRequest} onNavigate={navigate} />}
         {view === 'dispatch' && (
@@ -90,7 +90,7 @@ function App() {
           />
         )}
       </main>
-      <SiteFooter />
+      {view !== 'home' && <SiteFooter />}
     </div>
   );
 }
