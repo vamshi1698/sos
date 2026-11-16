@@ -53,14 +53,14 @@ export const SECTIONS_CONFIG: SceneSectionConfig[] = [
     showDispatchHolo: false,
   },
   {
-    id: 4, // 04 Protocol (Speeding straight down the highway lane with rear light trails)
+    id: 4, // 04 Protocol (Speeding straight down the highway lane)
     camPos: [5.4, 2.8, 6.0],
     lookAt: [-0.1, 0.8, 0.3],
     ambulancePos: [1.2, 0, 0.4],
     ambulanceRotY: 0,
     speed: 3.8,
     showTraffic: false,
-    showLightTrails: true,
+    showLightTrails: false,
     showHospital: false,
     showRadar: false,
     showDispatchHolo: false,
