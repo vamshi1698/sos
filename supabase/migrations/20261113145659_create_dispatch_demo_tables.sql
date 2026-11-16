@@ -2,7 +2,7 @@
 # Create dispatch demo tables
 
 Plain-English summary
-This migration creates the storage for the RapidRelay dispatch demonstration: the ambulance fleet, the ambulance requests that arrive from each channel, and a running activity log of automated and manual dispatch actions. It also loads the sample fleet of seven fictional Bengaluru ambulances.
+This migration creates the storage for the Pranrath dispatch demonstration: the ambulance fleet, the ambulance requests that arrive from each channel, and a running activity log of automated and manual dispatch actions. It also loads the sample fleet of seven fictional Bengaluru ambulances.
 
 1. New Tables
 - `ambulances`: fleet records (registration, operator, vehicle category, network, availability, area, last GPS time).

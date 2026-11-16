@@ -20,12 +20,12 @@ export default function Navbar({ view, onNavigate }: NavbarProps) {
         <button
           onClick={() => onNavigate('home')}
           className="flex items-center gap-2 transition-transform hover:-rotate-2"
-          aria-label="RapidRelay home"
+          aria-label="Pranrath home"
         >
           <span className="flex h-10 w-10 items-center justify-center border-4 border-ink bg-comic-red shadow-panel-sm">
             <Ambulance className="h-6 w-6 text-comic-cream" strokeWidth={2.5} />
           </span>
-          <span className="font-display text-2xl tracking-wider text-comic-yellow">RapidRelay</span>
+          <span className="font-display text-2xl tracking-wider text-comic-yellow">Pranrath</span>
         </button>
 
         <nav className="flex flex-wrap items-center gap-2" aria-label="Main">
@@ -34,6 +34,7 @@ export default function Navbar({ view, onNavigate }: NavbarProps) {
             return (
               <button
                 key={link.view}
+                id={`nav-${link.view}`}
                 onClick={() => onNavigate(link.view)}
                 aria-current={active ? 'page' : undefined}
                 className={`relative flex items-center gap-1.5 border-2 px-3 py-1.5 font-body text-sm font-bold uppercase tracking-wide transition-all ${

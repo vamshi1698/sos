@@ -1,18 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  AlertTriangle,
-  Ambulance,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
-  Clock,
-  Compass,
-  Layers,
   Pause,
   Play,
   RotateCcw,
   Sparkles,
-  Smartphone,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -21,6 +14,8 @@ import DispatchFleetRow from '@/components/simulation/DispatchFleetRow';
 import DualPovScreens from '@/components/simulation/DualPovScreens';
 import { MOST_USED_SERVICES } from '@/data/services';
 import type { Ambulance as AmbulanceType, AmbulanceRequest, View } from '@/types';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 
 interface SimulationPageProps {
   requests: AmbulanceRequest[];
@@ -42,7 +37,7 @@ const SIM_STEPS = [
   {
     step: 1,
     title: 'Emergency Happens & Patient Opens App',
-    description: 'A medical crisis happens. Family or bystander opens the RapidRelay app on their phone.',
+    description: 'A medical crisis happens. Family or bystander opens the Pranrath app on their phone.',
     actor: 'Patient / Family',
     badge: 'Patient App',
   },
@@ -118,6 +113,24 @@ const SIM_STEPS = [
   },
 ];
 
+const TOUR_STORAGE_KEY = 'pranrath_sim_tour_completed';
+
+function hasCompletedTourOnce(): boolean {
+  try {
+    return localStorage.getItem(TOUR_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function markTourCompletedOnce(): void {
+  try {
+    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+}
+
 export default function SimulationPage({
   requests,
   ambulances,
@@ -132,6 +145,7 @@ export default function SimulationPage({
   const [selectedServiceId, setSelectedServiceId] = useState('accident');
   const [isDeclineSimulated, setIsDeclineSimulated] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const hasAutoStartedRef = useRef(false);
 
   // Active request
   const activeRequest = requests[0];
@@ -166,24 +180,24 @@ export default function SimulationPage({
     };
   }, [isPlaying, activeRequest, ambulances, onAssign, onOperatorAccept, onAdvanceStage]);
 
-  const handleStartSimulation = () => {
-    if (currentStep >= 11) {
-      handleResetSimulation();
-    }
-    setIsPlaying(true);
-  };
-
-  const handlePauseSimulation = () => {
-    setIsPlaying(false);
-  };
-
-  const handleResetSimulation = () => {
+  const handleResetSimulation = useCallback(() => {
     setIsPlaying(false);
     setCurrentStep(1);
     setIsDeclineSimulated(false);
     if (onSpawnServiceDemo) {
       onSpawnServiceDemo(selectedServiceId);
     }
+  }, [onSpawnServiceDemo, selectedServiceId]);
+
+  const handleStartSimulation = useCallback(() => {
+    if (currentStep >= 11) {
+      handleResetSimulation();
+    }
+    setIsPlaying(true);
+  }, [currentStep, handleResetSimulation]);
+
+  const handlePauseSimulation = () => {
+    setIsPlaying(false);
   };
 
   const handleNextStep = () => {
@@ -221,6 +235,131 @@ export default function SimulationPage({
 
   const currentStepInfo = SIM_STEPS[currentStep - 1] || SIM_STEPS[0];
 
+  const handleStartSimulationRef = useRef(handleStartSimulation);
+  useEffect(() => {
+    handleStartSimulationRef.current = handleStartSimulation;
+  }, [handleStartSimulation]);
+
+  const startSimulationTour = useCallback(() => {
+    const driverObj = driver({
+      popoverClass: 'driverjs-theme',
+      showProgress: true,
+      animate: true,
+      allowClose: true,
+      stagePadding: 8,
+      stageRadius: 12,
+      nextBtnText: 'Next Step →',
+      prevBtnText: '← Back',
+      doneBtnText: 'Start Simulation 🚀',
+      onDestroyStarted: () => {
+        // If driver completed all steps and user clicks done, start the simulation automatically
+        if (!driverObj.hasNextStep()) {
+          handleStartSimulationRef.current();
+        }
+        driverObj.destroy();
+      },
+      steps: [
+        {
+          element: '#start-simulation-btn',
+          popover: {
+            title: 'Before we start',
+            description:
+              'Welcome to Pranrath! Take this quick walkthrough to explore the 11-step emergency dispatch lifecycle before starting the live simulation.',
+            side: 'bottom',
+            align: 'start',
+          },
+        },
+        {
+          element: '#emergency-scenario-selector',
+          popover: {
+            title: 'Emergency Scenarios',
+            description:
+              'Choose an emergency category (Accident, Cardiac, Child, Maternity, or Stroke) to simulate specialized triage and dispatch protocols.',
+            side: 'bottom',
+            align: 'start',
+          },
+        },
+        {
+          element: '#simulation-progress-bar',
+          popover: {
+            title: '11-Stage Workflow Tracker',
+            description:
+              'Follow the live crisis progress meter from the initial SOS tap to satellite GPS locking, driver rush, and trauma hospital handover.',
+            side: 'bottom',
+            align: 'center',
+          },
+        },
+        {
+          element: '#simulation-step-controls',
+          popover: {
+            title: 'Step Controls & Decline Loop',
+            description:
+              'Use Next and Back to navigate milestones manually, pause anytime, or test driver decline to see automated re-assignment.',
+            side: 'bottom',
+            align: 'end',
+          },
+        },
+        {
+          element: '#bpmn-process-flow',
+          popover: {
+            title: 'BPMN Live Process Flow',
+            description:
+              'Watch active process nodes illuminate across Patient App, Central Dispatch, and Ambulance Operator swimlanes as each step completes.',
+            side: 'top',
+            align: 'center',
+          },
+        },
+        {
+          element: '#dispatch-fleet-row',
+          popover: {
+            title: 'Bangalore Fleet Status',
+            description:
+              'Central Dispatch monitors 6 live ambulances across the city, scoring proximity, traffic, and onboard life-support equipment to assign the best unit.',
+            side: 'top',
+            align: 'center',
+          },
+        },
+        {
+          element: '#dual-pov-screens',
+          popover: {
+            title: 'Dual POV Live Screens',
+            description:
+              'View the Patient’s mobile tracking map side-by-side with the Paramedic’s In-Cab MDT terminal as they coordinate the rescue mission.',
+            side: 'top',
+            align: 'center',
+          },
+        },
+        {
+          element: '#start-simulation-btn',
+          popover: {
+            title: 'Ready to drive!',
+            description:
+              'Click "Start Simulation 🚀" below to launch the automated emergency workflow and watch all 11 life-saving steps run in real time.',
+            side: 'bottom',
+            align: 'start',
+          },
+        },
+      ],
+    });
+
+    driverObj.drive();
+  }, []);
+
+  useEffect(() => {
+    // Only show once automatically
+    if (hasAutoStartedRef.current || hasCompletedTourOnce()) {
+      return;
+    }
+    hasAutoStartedRef.current = true;
+    markTourCompletedOnce();
+
+    const timer = setTimeout(() => {
+      startSimulationTour();
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [startSimulationTour]);
+
   return (
     <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6">
       {/* =================================================================== */}
@@ -244,8 +383,20 @@ export default function SimulationPage({
 
           {/* Master Action Controls */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              id="start-tour-btn"
+              type="button"
+              onClick={startSimulationTour}
+              className="comic-button-yellow px-3 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 shadow-panel-sm"
+              title="Take interactive tour to drive the simulation"
+            >
+              <Sparkles className="h-4 w-4 text-comic-red" />
+              <span>Take Tour</span>
+            </button>
+
             {!isPlaying ? (
               <button
+                id="start-simulation-btn"
                 type="button"
                 onClick={handleStartSimulation}
                 className="comic-button-primary px-4 py-1.5 text-sm sm:text-base flex items-center gap-2 shadow-panel-sm"
@@ -255,6 +406,7 @@ export default function SimulationPage({
               </button>
             ) : (
               <button
+                id="start-simulation-btn"
                 type="button"
                 onClick={handlePauseSimulation}
                 className="comic-button-yellow px-4 py-1.5 text-sm sm:text-base flex items-center gap-2 shadow-panel-sm"
@@ -264,50 +416,56 @@ export default function SimulationPage({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              disabled={currentStep <= 1}
-              className="comic-button-ghost px-2.5 py-1.5 text-xs sm:text-sm flex items-center gap-1 disabled:opacity-40"
-              title="Previous Step"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back</span>
-            </button>
+            <div id="simulation-step-controls" className="flex flex-wrap items-center gap-1.5">
+              <button
+                id="prev-step-btn"
+                type="button"
+                onClick={handlePrevStep}
+                disabled={currentStep <= 1}
+                className="comic-button-ghost px-2.5 py-1.5 text-xs sm:text-sm flex items-center gap-1 disabled:opacity-40"
+                title="Previous Step"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Back</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleNextStep}
-              disabled={currentStep >= 11}
-              className="comic-button-ghost px-3 py-1.5 text-xs sm:text-sm flex items-center gap-1 disabled:opacity-40"
-            >
-              <span>Next Step</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+              <button
+                id="next-step-btn"
+                type="button"
+                onClick={handleNextStep}
+                disabled={currentStep >= 11}
+                className="comic-button-ghost px-3 py-1.5 text-xs sm:text-sm flex items-center gap-1 disabled:opacity-40"
+              >
+                <span>Next Step</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
 
-            <button
-              type="button"
-              onClick={handleResetSimulation}
-              className="comic-button-ghost px-2.5 py-1.5 text-xs"
-              title="Reset simulation to beginning"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
+              <button
+                id="reset-simulation-btn"
+                type="button"
+                onClick={handleResetSimulation}
+                className="comic-button-ghost px-2.5 py-1.5 text-xs"
+                title="Reset simulation to beginning"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
 
-            <button
-              type="button"
-              onClick={handleSimulateDecline}
-              className="rounded-lg border-2 border-comic-red px-2.5 py-1 text-xs font-bold text-comic-red hover:bg-red-50 transition-colors flex items-center gap-1"
-              title="Test driver decline and re-match loop"
-            >
-              <XCircle className="h-3.5 w-3.5" />
-              <span>Test Decline Loop</span>
-            </button>
+              <button
+                id="test-decline-btn"
+                type="button"
+                onClick={handleSimulateDecline}
+                className="rounded-lg border-2 border-comic-red px-2.5 py-1 text-xs font-bold text-comic-red hover:bg-red-50 transition-colors flex items-center gap-1"
+                title="Test driver decline and re-match loop"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                <span>Test Decline Loop</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Live Step Progress Bar & Active Phase Banner */}
-        <div className="rounded-xl border-2 border-ink bg-comic-paper px-3 py-2 space-y-1">
+        <div id="simulation-progress-bar" className="rounded-xl border-2 border-ink bg-comic-paper px-3 py-2 space-y-1">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="font-display text-xs sm:text-sm tracking-wide text-comic-red flex items-center gap-1.5">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-comic-red text-white text-[10px] font-bold">
@@ -334,7 +492,7 @@ export default function SimulationPage({
         </div>
 
         {/* Emergency Scenario Selector */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 pt-1 text-xs">
+        <div id="emergency-scenario-selector" className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 pt-1 text-xs">
           <span className="font-display text-[11px] tracking-wider text-ink/70">
             Emergency Scenario:
           </span>
@@ -370,18 +528,20 @@ export default function SimulationPage({
       {/* =================================================================== */}
       {/* 2. BPMN SWIMLANE DIAGRAM: DIRECTLY UNDER SIMULATION START! */}
       {/* =================================================================== */}
-      <SwimlaneWorkflowVisualizer
-        requests={requests}
-        ambulances={ambulances}
-        selectedRequest={activeRequest}
-        currentSimStep={currentStep}
-        isDeclineSimulated={isDeclineSimulated}
-      />
+      <div id="bpmn-process-flow">
+        <SwimlaneWorkflowVisualizer
+          requests={requests}
+          ambulances={ambulances}
+          selectedRequest={activeRequest}
+          currentSimStep={currentStep}
+          isDeclineSimulated={isDeclineSimulated}
+        />
+      </div>
 
       {/* =================================================================== */}
       {/* 3. DISPATCHING PART: 4 TO 6 AMBULANCES POV IN ONE ROW */}
       {/* =================================================================== */}
-      <div className="rounded-2xl border-4 border-ink bg-white p-3.5 shadow-panel">
+      <div id="dispatch-fleet-row" className="rounded-2xl border-4 border-ink bg-white p-3.5 shadow-panel">
         <DispatchFleetRow
           ambulances={ambulances}
           activeRequest={activeRequest}
@@ -392,17 +552,19 @@ export default function SimulationPage({
       {/* =================================================================== */}
       {/* 4. DUAL LIVE POV SCREENS (PATIENT MOBILE APP & DRIVER IN-CAB MDT) */}
       {/* =================================================================== */}
-      <DualPovScreens
-        request={activeRequest}
-        assignedAmbulance={assignedAmb}
-        currentSimStep={currentStep}
-        onAdvanceStage={handleNextStep}
-        onOperatorDecline={handleSimulateDecline}
-        onOperatorAccept={() => {
-          if (activeRequest && onOperatorAccept) onOperatorAccept(activeRequest.id);
-          handleNextStep();
-        }}
-      />
+      <div id="dual-pov-screens">
+        <DualPovScreens
+          request={activeRequest}
+          assignedAmbulance={assignedAmb}
+          currentSimStep={currentStep}
+          onAdvanceStage={handleNextStep}
+          onOperatorDecline={handleSimulateDecline}
+          onOperatorAccept={() => {
+            if (activeRequest && onOperatorAccept) onOperatorAccept(activeRequest.id);
+            handleNextStep();
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -126,7 +126,7 @@ export default function ActorViews({
               {/* Patient App Header */}
               <div className="mt-2 flex items-center justify-between">
                 <div>
-                  <h4 className="font-display text-xl tracking-wide text-ink">RapidRelay SOS</h4>
+                  <h4 className="font-display text-xl tracking-wide text-ink">Pranrath SOS</h4>
                   <p className="text-[10px] text-slate-500">Emergency Medical Response</p>
                 </div>
                 <span className="rounded-full bg-blue-100 p-2 text-blue-700">
@@ -275,7 +275,7 @@ export default function ActorViews({
 
               {/* Bottom Nav Mockup */}
               <div className="border-t pt-2 text-center text-[10px] text-slate-400">
-                RapidRelay Emergency Patient App • Verified Encrypted Channel
+                Pranrath Emergency Patient App • Verified Encrypted Channel
               </div>
             </div>
           </div>
