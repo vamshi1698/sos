@@ -219,65 +219,14 @@ export default function ThreeAmbulanceScene({
     }
 
     // =========================================================================
-    // ROAD 3: URBAN 4-WAY INTERSECTION (KORAMANGALA JUNCTION)
+    // ROAD 3: URBAN TRANSIT CORRIDOR (CLEAN STRAIGHT HIGHWAY BOULEVARD)
     // =========================================================================
     const roadGroup3 = new THREE.Group();
     groundGroup.add(roadGroup3);
 
-    // Perpendicular cross-street cutting across at z = 3 to 11
-    const crossStreetAsphalt = new THREE.Mesh(
-      new THREE.PlaneGeometry(90, 8.4),
-      new THREE.MeshStandardMaterial({ color: 0x121722, roughness: 0.85, metalness: 0.15 })
-    );
-    crossStreetAsphalt.rotation.x = -Math.PI / 2;
-    crossStreetAsphalt.position.set(0, 0.11, 7.2);
-    crossStreetAsphalt.receiveShadow = true;
-    roadGroup3.add(crossStreetAsphalt);
-
-    // Cross-street center dashed lines
-    for (let x = -38; x <= 38; x += 3.8) {
-      if (Math.abs(x) < 4.5) continue;
-      const cLine = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.2), dashedLineMat);
-      cLine.rotation.x = -Math.PI / 2;
-      cLine.position.set(x, 0.12, 7.2);
-      roadGroup3.add(cLine);
-    }
-
-    // Zebra Crosswalk Stripes at z = 3.6
-    for (let x = -3.4; x <= 3.4; x += 0.75) {
-      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 2.0), dashedLineMat);
-      stripe.rotation.x = -Math.PI / 2;
-      stripe.position.set(x, 0.016, 3.6);
-      roadGroup3.add(stripe);
-    }
-
-    // Solid Stop Line Bar before crosswalk at z = 2.2
-    const stopLine3 = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 0.35), dashedLineMat);
-    stopLine3.rotation.x = -Math.PI / 2;
-    stopLine3.position.set(0, 0.016, 2.2);
-    roadGroup3.add(stopLine3);
-
-    // Green Emergency Route Navigation Chevrons on Asphalt
-    const chevronMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.85 });
-    for (let i = 0; i < 4; i++) {
-      const zOffset = 5.6 + i * 2.2;
-      const xOffset = 0.8 + i * 0.45;
-      const chevronL = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.85), chevronMat);
-      chevronL.rotation.x = -Math.PI / 2;
-      chevronL.rotation.z = Math.PI / 3.6;
-      chevronL.position.set(xOffset - 0.25, 0.13, zOffset);
-      roadGroup3.add(chevronL);
-
-      const chevronR = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.85), chevronMat);
-      chevronR.rotation.x = -Math.PI / 2;
-      chevronR.rotation.z = -Math.PI / 3.6;
-      chevronR.position.set(xOffset + 0.25, 0.13, zOffset);
-      roadGroup3.add(chevronR);
-    }
-
-    // Road 3 Center dashed lines
+    // Road 3 Center dashed lines running full length from -40 to +40
     const roadLines3: THREE.Mesh[] = [];
-    for (let z = -40; z <= 0; z += 3.5) {
+    for (let z = -40; z <= 40; z += 3.5) {
       const lineMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1.8), dashedLineMat);
       lineMesh.rotation.x = -Math.PI / 2;
       lineMesh.position.set(0, 0.015, z);
@@ -403,17 +352,18 @@ export default function ThreeAmbulanceScene({
       return tree;
     }
 
+    const treeMeshes: THREE.Group[] = [];
+    // Background avenue trees along the far sidewalk (never obstructs foreground ambulance camera)
     const treePositions = [
-      { x: -5.8, z: -26, s: 1.1 },
-      { x: -5.8, z: -14, s: 0.95 },
-      { x: -5.8, z: -2, s: 1.05 },
-      { x: -5.8, z: 12, s: 1.0 },
-      { x: -5.8, z: 24, s: 1.15 },
-      { x: 5.8, z: -24, s: 1.0 },
-      { x: 5.8, z: -12, s: 1.1 },
-      { x: 5.8, z: 0, s: 0.95 },
-      { x: 5.8, z: 14, s: 1.05 },
-      { x: 5.8, z: 26, s: 1.1 },
+      { x: -5.8, z: -36, s: 1.1 },
+      { x: -6.2, z: -26, s: 0.95 },
+      { x: -5.8, z: -16, s: 1.05 },
+      { x: -6.2, z: -6, s: 1.15 },
+      { x: -5.8, z: 4, s: 1.0 },
+      { x: -6.2, z: 14, s: 1.15 },
+      { x: -5.8, z: 24, s: 1.05 },
+      { x: -6.2, z: 34, s: 1.1 },
+      { x: -5.8, z: 44, s: 0.95 },
     ];
     const treesGroup = new THREE.Group();
     groundGroup.add(treesGroup);
@@ -422,6 +372,7 @@ export default function ThreeAmbulanceScene({
       const tree = createLowPolyTree(tp.s);
       tree.position.set(tp.x, 0.2, tp.z);
       treesGroup.add(tree);
+      treeMeshes.push(tree);
     });
 
     // --- 5. Arched Overhead Street Lamps with Downward Spotlights ---
@@ -470,62 +421,26 @@ export default function ThreeAmbulanceScene({
       return lamp;
     }
 
+    const lampMeshes: THREE.Group[] = [];
     const lampPositions = [
-      { isLeft: true, z: -22 },
-      { isLeft: true, z: -6 },
-      { isLeft: true, z: 12 },
-      { isLeft: false, z: -20 },
-      { isLeft: false, z: -6 },
+      { isLeft: true, z: -28 },
+      { isLeft: true, z: -12 },
+      { isLeft: true, z: 4 },
+      { isLeft: true, z: 20 },
+      { isLeft: true, z: 36 },
+      { isLeft: false, z: -24 },
+      { isLeft: false, z: -8 },
       { isLeft: false, z: 18 },
+      { isLeft: false, z: 34 },
     ];
     lampPositions.forEach((lp) => {
       const lamp = createArchedStreetLamp(lp.isLeft);
       lamp.position.set(lp.isLeft ? -4.6 : 4.6, 0.2, lp.z);
       groundGroup.add(lamp);
+      lampMeshes.push(lamp);
     });
 
-    // --- 6. Sidewalk Street Props (Traffic Lights, Fire Hydrants, Utility Cabinets) ---
-    // Traffic Light Signal Posts - belong strictly to Road 3 (Intersection)
-    function createTrafficLightPost(): THREE.Group {
-      const post = new THREE.Group();
-      const mastMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.4 });
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 4.2, 8), mastMat);
-      mast.position.y = 2.1;
-      post.add(mast);
-
-      // Signal box housing
-      const box = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 1.0, 0.3),
-        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
-      );
-      box.position.set(0, 3.6, 0);
-      post.add(box);
-
-      // Red, Yellow, Green signal lenses
-      const redLens = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-      redLens.position.set(0, 3.9, 0.16);
-      post.add(redLens);
-
-      const yellowLens = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0x332800 }));
-      yellowLens.position.set(0, 3.6, 0.16);
-      post.add(yellowLens);
-
-      const greenLens = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-      greenLens.position.set(0, 3.3, 0.16);
-      post.add(greenLens);
-
-      return post;
-    }
-
-    // Traffic lights are added to roadGroup3 ONLY so they never obstruct Section 4 highway or other sections
-    const tLight1 = createTrafficLightPost();
-    tLight1.position.set(-4.5, 0.2, 5.5);
-    roadGroup3.add(tLight1);
-
-    const tLight2 = createTrafficLightPost();
-    tLight2.position.set(4.5, 0.2, 5.5);
-    tLight2.rotation.y = Math.PI;
-    roadGroup3.add(tLight2);
+    // --- 6. Sidewalk Street Props (Fire Hydrants, Utility Cabinets) ---
 
     // Fire Hydrant (belong to Road 2 city boulevard)
     function createFireHydrant(): THREE.Group {
@@ -612,20 +527,27 @@ export default function ThreeAmbulanceScene({
       hasAntenna?: boolean;
     }
 
-    const buildingConfigs: BuildingConfig[] = [
-      // Left Avenue Street-Facing Buildings
+    const streetBuildingConfigs: BuildingConfig[] = [
+      // Left Avenue Street-Facing Buildings (x ~ -15)
+      { x: -15, z: -35, w: 9, h: 26, d: 9, seed: 17, color: 0x141d2d, hasHVAC: true },
       { x: -14, z: -22, w: 9, h: 22, d: 8, seed: 1, color: 0x131a29, hasHVAC: true },
-      { x: -15, z: -11, w: 8, h: 28, d: 9, seed: 2, color: 0x162032, hasWaterTower: true },
-      { x: -14, z: 1, w: 9, h: 18, d: 9, seed: 3, color: 0x111827, hasHVAC: true },
-      { x: -15, z: 13, w: 8, h: 26, d: 8, seed: 4, color: 0x141e2e, hasAntenna: true },
-      { x: -14, z: 24, w: 9, h: 20, d: 9, seed: 5, color: 0x162338, hasWaterTower: true },
+      { x: -15, z: -10, w: 8, h: 28, d: 9, seed: 2, color: 0x162032, hasWaterTower: true },
+      { x: -14, z: 2, w: 9, h: 18, d: 9, seed: 3, color: 0x111827, hasHVAC: true },
+      { x: -15, z: 14, w: 8, h: 26, d: 8, seed: 4, color: 0x141e2e, hasAntenna: true },
+      { x: -14, z: 26, w: 9, h: 20, d: 9, seed: 5, color: 0x162338, hasWaterTower: true },
+      { x: -15, z: 38, w: 8, h: 24, d: 8, seed: 18, color: 0x131a28, hasHVAC: true },
 
-      // Right Avenue Street-Facing Buildings
+      // Right Avenue Street-Facing Buildings (x ~ 15)
+      { x: 15, z: -33, w: 8, h: 22, d: 8, seed: 19, color: 0x162032, hasHVAC: true },
       { x: 15, z: -20, w: 9, h: 24, d: 8, seed: 6, color: 0x141d2d, hasAntenna: true },
       { x: 16, z: -8, w: 8, h: 19, d: 9, seed: 7, color: 0x111927, hasHVAC: true },
       { x: 15, z: 5, w: 9, h: 27, d: 8, seed: 8, color: 0x172236, hasWaterTower: true },
       { x: 16, z: 18, w: 8, h: 23, d: 9, seed: 9, color: 0x131a28, hasHVAC: true },
+      { x: 15, z: 30, w: 9, h: 26, d: 9, seed: 20, color: 0x152134, hasWaterTower: true },
+      { x: 16, z: 42, w: 8, h: 21, d: 8, seed: 21, color: 0x111827, hasAntenna: true },
+    ];
 
+    const distantBuildingConfigs: BuildingConfig[] = [
       // Distant Background Skyscrapers & High-Rises
       { x: -25, z: -36, w: 12, h: 38, d: 10, seed: 10, color: 0x0f172a, hasAntenna: true },
       { x: -12, z: -38, w: 11, h: 44, d: 11, seed: 11, color: 0x111b2b, hasAntenna: true },
@@ -636,7 +558,7 @@ export default function ThreeAmbulanceScene({
       { x: 8, z: -31, w: 9, h: 34, d: 8, seed: 16, color: 0x141e30, hasWaterTower: true },
     ];
 
-    buildingConfigs.forEach((cfg) => {
+    function createBuildingItem(cfg: BuildingConfig): THREE.Group {
       const bGroup = new THREE.Group();
       bGroup.position.set(cfg.x, 0, cfg.z);
 
@@ -733,7 +655,21 @@ export default function ThreeAmbulanceScene({
         beaconLights.push(beaconLight);
       }
 
-      buildingsGroup.add(bGroup);
+      return bGroup;
+    }
+
+    const streetBuildingMeshes: THREE.Group[] = [];
+    streetBuildingConfigs.forEach((cfg) => {
+      const b = createBuildingItem(cfg);
+      buildingsGroup.add(b);
+      streetBuildingMeshes.push(b);
+    });
+
+    const distantBuildingMeshes: THREE.Group[] = [];
+    distantBuildingConfigs.forEach((cfg) => {
+      const b = createBuildingItem(cfg);
+      buildingsGroup.add(b);
+      distantBuildingMeshes.push(b);
     });
 
     // Atmospheric Night Dust / Distant Starfield in Sky
@@ -856,23 +792,7 @@ export default function ThreeAmbulanceScene({
     cabWindowRight.position.set(1.01, 1.45, 1.4);
     ambulanceGroup.add(cabWindowRight);
 
-    // Rear Ambulance Cross Decals (Star of Life emblem) & AMBULANCE text
-    function createCrossMesh(): THREE.Group {
-      const g = new THREE.Group();
-      const v = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.55, 0.18), new THREE.MeshBasicMaterial({ color: 0x1d4ed8 }));
-      const h = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.18, 0.55), new THREE.MeshBasicMaterial({ color: 0x1d4ed8 }));
-      g.add(v, h);
-      return g;
-    }
-    const crossLeft = createCrossMesh();
-    crossLeft.position.set(-1.06, 1.7, -0.65);
-    ambulanceGroup.add(crossLeft);
-
-    const crossRight = createCrossMesh();
-    crossRight.position.set(1.06, 1.7, -0.65);
-    ambulanceGroup.add(crossRight);
-
-    // Bold "AMBULANCE" Red Lettering Canvas Decals on Side Walls & Hood
+    // Bold "AMBULANCE" Red Lettering Canvas Decals on Hood
     function createDecalTexture(text: string, textColor = '#e52421', bgColor = '#f8fafc'): THREE.CanvasTexture {
       const cvs = document.createElement('canvas');
       cvs.width = 512;
@@ -891,19 +811,21 @@ export default function ThreeAmbulanceScene({
       return tex;
     }
 
-    // Bold "EMERGENCY" Decal with Blue Star of Life emblem on Side Walls (matching reference image media_1794819686574_69836512.jpg)
+    // Unified "EMERGENCY" Decal with Blue Star of Life Emblem on Side Walls
+    // Reference: media_1794819686574_69836512.jpg - Clean, centered, flush decal with blue Star of Life on left & bold red EMERGENCY on right
     function createSideEmergencyDecal(): THREE.CanvasTexture {
       const cvs = document.createElement('canvas');
-      cvs.width = 512;
-      cvs.height = 128;
+      cvs.width = 1024;
+      cvs.height = 256;
       const c = cvs.getContext('2d')!;
 
+      // Crisp clean white decal plate matching ambulance white paint
       c.fillStyle = '#f8fafc';
-      c.fillRect(0, 0, 512, 128);
+      c.fillRect(0, 0, 1024, 256);
 
-      // Blue 6-pointed Star of Life emblem
-      c.fillStyle = '#2563eb';
-      const cx = 70, cy = 64, r = 38, w = 14;
+      // Blue 6-pointed Star of Life emblem on left
+      c.fillStyle = '#1d4ed8';
+      const cx = 130, cy = 128, r = 70, w = 26;
       for (let a = 0; a < 3; a++) {
         const rad = (a * Math.PI) / 3;
         c.save();
@@ -913,27 +835,35 @@ export default function ThreeAmbulanceScene({
         c.restore();
       }
 
-      // Bold Red "EMERGENCY" text
-      c.font = 'bold 58px "Rubik", "Arial Black", sans-serif';
+      // White rod / serpent motif inside Star of Life
+      c.fillStyle = '#ffffff';
+      c.fillRect(cx - 5, cy - 46, 10, 92);
+
+      // Bold Red "EMERGENCY" lettering cleanly spaced and proportioned
+      c.font = 'bold 94px "Rubik", "Arial Black", "Montserrat", sans-serif';
       c.fillStyle = '#dc2626';
       c.textAlign = 'left';
       c.textBaseline = 'middle';
-      c.fillText('EMERGENCY', 135, 64);
+      c.fillText('EMERGENCY', 235, 128);
 
-      return new THREE.CanvasTexture(cvs);
+      const tex = new THREE.CanvasTexture(cvs);
+      tex.anisotropy = 4;
+      return tex;
     }
 
     const ambSideTex = createSideEmergencyDecal();
     const ambSideMat = new THREE.MeshBasicMaterial({ map: ambSideTex, transparent: true });
 
-    const sideTextL = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.45), ambSideMat);
+    // Left side decal (centered on patient box z = -0.65)
+    const sideTextL = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.48), ambSideMat);
     sideTextL.rotation.y = -Math.PI / 2;
-    sideTextL.position.set(-1.06, 1.7, 0.2);
+    sideTextL.position.set(-1.06, 1.70, -0.65);
     ambulanceGroup.add(sideTextL);
 
-    const sideTextR = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.45), ambSideMat);
+    // Right side decal (centered on patient box z = -0.65)
+    const sideTextR = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.48), ambSideMat);
     sideTextR.rotation.y = Math.PI / 2;
-    sideTextR.position.set(1.06, 1.7, 0.2);
+    sideTextR.position.set(1.06, 1.70, -0.65);
     ambulanceGroup.add(sideTextR);
 
     // Hood "EMERGENCY" Decal with Medical Cross
@@ -1104,14 +1034,6 @@ export default function ThreeAmbulanceScene({
     radarRing.rotation.x = -Math.PI / 2;
     radarRing.position.y = 0.03;
     radarGroup.add(radarRing);
-
-    // Green Telemetry Bounding Wireframe around ambulance (Image 3)
-    const boxWireGeo = new THREE.BoxGeometry(2.6, 2.4, 5.4);
-    const boxWireMat = new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 2, transparent: true, opacity: 0.75 });
-    const wireEdges = new THREE.EdgesGeometry(boxWireGeo);
-    const telemetryWireframe = new THREE.LineSegments(wireEdges, boxWireMat);
-    telemetryWireframe.position.y = 1.35;
-    radarGroup.add(telemetryWireframe);
 
     // Green Road Directional Arrows
     const arrowsGroup = new THREE.Group();
@@ -1354,44 +1276,60 @@ export default function ThreeAmbulanceScene({
 
     function createCar(colorHex: number): THREE.Group {
       const car = new THREE.Group();
-      const carMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.5 });
+      const carMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4, metalness: 0.2 });
       // Chassis
-      const cBody = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 3.4), carMat);
-      cBody.position.y = 0.5;
+      const cBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.55, 3.2), carMat);
+      cBody.position.y = 0.45;
       cBody.castShadow = true;
       car.add(cBody);
-      // Cabin
-      const cRoof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.55, 1.8), windowGlassMat);
-      cRoof.position.set(0, 0.95, -0.2);
+
+      // Cabin / Roof
+      const cRoof = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.48, 1.7), windowGlassMat);
+      cRoof.position.set(0, 0.88, -0.15);
       car.add(cRoof);
+
+      // Front Headlights (+Z front)
+      const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.05), headlightMat);
+      hlL.position.set(-0.52, 0.46, 1.62);
+      const hlR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.05), headlightMat);
+      hlR.position.set(0.52, 0.46, 1.62);
+      car.add(hlL, hlR);
+
+      // Rear Taillights (-Z rear)
+      const tlL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.05), taillightMat);
+      tlL.position.set(-0.52, 0.46, -1.62);
+      const tlR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.05), taillightMat);
+      tlR.position.set(0.52, 0.46, -1.62);
+      car.add(tlL, tlR);
+
       // Wheels
-      for (let s = -1; s <= 1; s += 2) {
-        for (let l = -1; l <= 1; l += 2) {
-          const w = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 10), wheelRubberMat);
+      for (const s of [-0.82, 0.82]) {
+        for (const l of [-0.95, 0.95]) {
+          const w = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.2, 10), wheelRubberMat);
           w.rotation.z = Math.PI / 2;
-          w.position.set(s * 0.85, 0.32, l * 1.0);
+          w.position.set(s, 0.3, l);
           car.add(w);
         }
       }
       return car;
     }
 
-    // Yellow Sedan
+    // Yellow Sedan: Drives forward down the left oncoming lane (x = -2.2, facing -Z oncoming, moving forward down the road)
     const carYellow = createCar(0xfacc15);
-    carYellow.position.set(-2.8, 0, 4.2);
-    carYellow.rotation.y = Math.PI * 0.05;
+    carYellow.position.set(-2.2, 0, 12.0);
+    carYellow.rotation.y = Math.PI;
     trafficGroup.add(carYellow);
 
-    // Red Coupe
+    // Red Coupe: Drives forward down the far-left oncoming lane (x = -3.6, facing -Z oncoming, moving forward down the road)
     const carRed = createCar(0xef4444);
-    carRed.position.set(-3.2, 0, -4.5);
-    carRed.rotation.y = -Math.PI * 0.08;
+    carRed.position.set(-3.6, 0, -4.0);
+    carRed.rotation.y = Math.PI;
     trafficGroup.add(carRed);
 
-    // Blue Hatchback
+    // Blue Hatchback: Drives forward in center passing lane (x = -0.6, well separated from ambulance at x = 2.0, facing +Z, moving forward down the road)
     const carBlue = createCar(0x3b82f6);
-    carBlue.position.set(3.4, 0, 6.0);
-    carBlue.rotation.y = Math.PI * 0.98;
+    carBlue.position.set(-0.6, 0, 4.0);
+    carBlue.rotation.y = 0;
     trafficGroup.add(carBlue);
 
     // --- 8. Section 4: Light Beams / Speed Streak Trails ---
@@ -1842,11 +1780,45 @@ export default function ThreeAmbulanceScene({
         ambulanceGroup.position.y = THREE.MathUtils.lerp(ambulanceGroup.position.y, Math.sin(elapsed * 3) * 0.012, 0.05);
       }
 
-      // 3. Wheel rotation
-      const wheelSpin = targetConfig.speed * 8 * delta;
+      // 3. Wheel rotation & Synchronized Environment Motion
+      const groundMove = targetConfig.speed * 8.5 * delta;
+      const wheelSpin = groundMove > 0 ? groundMove / 0.42 : 0;
       wheels.forEach((w) => {
         w.rotation.x += wheelSpin;
       });
+
+      // Animate Trees, Street Lamps, and Buildings scrolling backward as the ambulance drives forward
+      if (groundMove > 0 && activeSec !== 5) {
+        treeMeshes.forEach((tree) => {
+          tree.position.z -= groundMove;
+          if (tree.position.z < -42) {
+            tree.position.z += 84;
+          }
+        });
+
+        lampMeshes.forEach((lamp) => {
+          lamp.position.z -= groundMove;
+          if (lamp.position.z < -42) {
+            lamp.position.z += 84;
+          }
+        });
+
+        // Street-facing avenue buildings scroll continuously
+        streetBuildingMeshes.forEach((b) => {
+          b.position.z -= groundMove;
+          if (b.position.z < -45) {
+            b.position.z += 90;
+          }
+        });
+
+        // Distant background skyscrapers drift with subtle 3D parallax
+        distantBuildingMeshes.forEach((b) => {
+          b.position.z -= groundMove * 0.35;
+          if (b.position.z < -52) {
+            b.position.z += 30;
+          }
+        });
+      }
 
       // 4. Strobe Siren Lights (Alternating Red & Blue)
       if (strobesOn) {
@@ -1909,12 +1881,19 @@ export default function ThreeAmbulanceScene({
         pos.needsUpdate = true;
       }
 
-      // Animate Traffic cars forward slightly in Section 3
+      // Animate Traffic cars driving realistically forward in their distinct lanes in Section 3
       if (targetConfig.showTraffic) {
-        carYellow.position.z -= 0.03;
-        if (carYellow.position.z < -15) carYellow.position.z = 25;
-        carBlue.position.z += 0.04;
-        if (carBlue.position.z > 25) carBlue.position.z = -15;
+        // Yellow sedan drives forward in -Z in left oncoming lane (x = -2.2)
+        carYellow.position.z -= (0.08 + groundMove * 0.4);
+        if (carYellow.position.z < -26) carYellow.position.z = 32;
+
+        // Red coupe drives forward in -Z in far-left oncoming lane (x = -3.6)
+        carRed.position.z -= (0.12 + groundMove * 0.5);
+        if (carRed.position.z < -26) carRed.position.z = 38;
+
+        // Blue hatchback drives forward in +Z in center lane (x = -0.6, well separated from ambulance at x = 2.0)
+        carBlue.position.z += 0.05;
+        if (carBlue.position.z > 32) carBlue.position.z = -22;
       }
 
       // Animate Light Trails to stream behind ambulance in Section 4
@@ -1934,26 +1913,26 @@ export default function ThreeAmbulanceScene({
         const pulse = 1 + (Math.sin(elapsed * 4) + 1) * 0.25;
         radarRing.scale.set(pulse, pulse, 1);
         radarRing.position.set(ambulanceGroup.position.x, 0.03, ambulanceGroup.position.z);
-        telemetryWireframe.position.set(ambulanceGroup.position.x, 1.35, ambulanceGroup.position.z);
-        telemetryWireframe.rotation.y = ambulanceGroup.rotation.y;
       }
 
-      // Animate Road dashed lines scrolling according to active road type
-      if (activeSec === 2) {
-        roadLines2.forEach((line) => {
-          line.position.z -= 0.25 * 12 * delta;
-          if (line.position.z < -40) line.position.z += 80;
-        });
-      } else if (activeSec === 3) {
-        roadLines3.forEach((line) => {
-          line.position.z -= targetConfig.speed * 12 * delta;
-          if (line.position.z < -40) line.position.z += 40;
-        });
-      } else if (activeSec === 4) {
-        roadLines4.forEach((line) => {
-          line.position.z -= targetConfig.speed * 14 * delta;
-          if (line.position.z < -40) line.position.z += 80;
-        });
+      // Animate Road dashed lines scrolling in sync with ground motion
+      if (groundMove > 0) {
+        if (activeSec === 2) {
+          roadLines2.forEach((line) => {
+            line.position.z -= groundMove;
+            if (line.position.z < -40) line.position.z += 80;
+          });
+        } else if (activeSec === 3) {
+          roadLines3.forEach((line) => {
+            line.position.z -= groundMove;
+            if (line.position.z < -40) line.position.z += 80;
+          });
+        } else if (activeSec === 4) {
+          roadLines4.forEach((line) => {
+            line.position.z -= groundMove;
+            if (line.position.z < -40) line.position.z += 80;
+          });
+        }
       }
 
       // Animate Rooftop Aviation Beacon Blinking
