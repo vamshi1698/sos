@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { AlertTriangle, MapPin, UserRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Clock, MapPin, UserRound } from 'lucide-react';
 import StageTrack from '@/components/dispatch/StageTrack';
 import StatusBadge from '@/components/dispatch/StatusBadge';
+import TripAuditLog from '@/components/dispatch/TripAuditLog';
 import { DECLINE_REASONS } from '@/lib/dispatch';
 import { rankCandidates } from '@/lib/matching';
-import type { Ambulance, AmbulanceRequest } from '@/types';
+import type { Ambulance, AmbulanceRequest, DispatchEvent } from '@/types';
 
 interface AssignmentPanelProps {
   request: AmbulanceRequest | undefined;
@@ -12,6 +13,7 @@ interface AssignmentPanelProps {
   autoDispatch: boolean;
   onAssign: (requestId: string, ambulanceId: string) => void;
   onDecline: (requestId: string, reason: string) => void;
+  events?: DispatchEvent[];
 }
 
 export default function AssignmentPanel({
@@ -20,10 +22,11 @@ export default function AssignmentPanel({
   autoDispatch,
   onAssign,
   onDecline,
+  events,
 }: AssignmentPanelProps) {
   if (!request) {
     return (
-      <aside className="comic-panel-dark flex min-h-[320px] items-center justify-center p-6 text-center">
+      <aside className="comic-panel-dark flex min-h-[320px] items-center justify-center p-6 text-center xl:sticky xl:top-20">
         <p className="font-display text-2xl tracking-wide text-comic-yellow">
           Select a request to see its trip progress.
         </p>
@@ -39,6 +42,7 @@ export default function AssignmentPanel({
       autoDispatch={autoDispatch}
       onAssign={onAssign}
       onDecline={onDecline}
+      events={events}
     />
   );
 }
@@ -49,19 +53,35 @@ function RequestDetail({
   autoDispatch,
   onAssign,
   onDecline,
+  events,
 }: AssignmentPanelProps & { request: AmbulanceRequest }) {
   const [declineReason, setDeclineReason] = useState<string>(DECLINE_REASONS[0]);
   const assigned = ambulances.find((a) => a.id === request.ambulanceId);
   const candidates = rankCandidates(ambulances, request);
 
+  const isUserSubmitted = request.channel === 'Mobile app' && !request.aiCaptured;
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
+    if (request.status !== 'pending' || !isUserSubmitted) return 0;
+    return Math.max(0, Math.ceil((60000 - (Date.now() - request.createdAt)) / 1000));
+  });
+
+  useEffect(() => {
+    if (request.status !== 'pending' || !isUserSubmitted) return;
+    const interval = setInterval(() => {
+      const left = Math.max(0, Math.ceil((60000 - (Date.now() - request.createdAt)) / 1000));
+      setSecondsRemaining(left);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [request.id, request.status, request.createdAt, isUserSubmitted]);
+
   return (
-    <aside className="comic-panel animate-pop-in space-y-5 p-5 sm:p-6">
+    <aside className="comic-panel animate-pop-in space-y-5 p-5 sm:p-6 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain comic-scrollbar xl:sticky xl:top-20">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-3xl text-ink">{request.id}</h2>
         <StatusBadge status={request.status} />
       </div>
 
-      <StageTrack status={request.status} />
+      <StageTrack status={request.status} stageTimestamps={request.stageTimestamps} />
 
       <dl className="space-y-3 text-sm">
         <div className="flex gap-2">
@@ -103,14 +123,36 @@ function RequestDetail({
 
       {request.alerts.length > 0 && (
         <div role="alert" className="space-y-2">
-          {request.alerts.map((alert, index) => (
-            <p
-              key={`${alert}-${index}`}
-              className="flex items-start gap-2 border-4 border-ink bg-comic-red p-3 text-sm font-bold text-comic-cream"
-            >
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {alert}
-            </p>
-          ))}
+          {request.alerts
+            .filter((alert) => {
+              if (alert.startsWith('No suitable ambulance') && candidates.length > 0) return false;
+              return true;
+            })
+            .map((alert, index) => (
+              <p
+                key={`${alert}-${index}`}
+                className="flex items-start gap-2 border-4 border-ink bg-comic-red p-3 text-sm font-bold text-comic-cream"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {alert}
+              </p>
+            ))}
+        </div>
+      )}
+
+      {request.status === 'pending' && isUserSubmitted && secondsRemaining > 0 && (
+        <div className="rounded-lg border-2 border-amber-600 bg-amber-50 p-3 text-xs space-y-1.5 shadow-xs animate-pop-in">
+          <div className="flex items-center justify-between font-bold text-amber-950">
+            <span className="flex items-center gap-1.5 font-display text-sm tracking-wide">
+              <Clock className="h-4 w-4 animate-spin text-amber-700" />
+              Manual Exploration Window
+            </span>
+            <span className="rounded bg-amber-600 text-white px-2 py-0.5 font-mono text-xs font-bold animate-pulse">
+              Auto-assigns in {secondsRemaining}s
+            </span>
+          </div>
+          <p className="text-amber-900/80 leading-relaxed">
+            Take 1 minute to explore candidate ambulances and assign manually, or let automated matching dispatch the optimal crew.
+          </p>
         </div>
       )}
 
@@ -194,6 +236,9 @@ function RequestDetail({
           Trip completed. Ambulance is available again.
         </p>
       )}
+
+      {/* Step-by-Step Audit Trail with Timestamps */}
+      <TripAuditLog request={request} ambulance={assigned} events={events} />
     </aside>
   );
 }

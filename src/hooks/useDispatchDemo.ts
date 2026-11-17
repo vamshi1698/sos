@@ -38,6 +38,7 @@ function buildRequest(fields: NewRequestFields): AmbulanceRequest {
     declinedAmbulanceIds: [],
     alerts: [],
     workflowStep: 'disp_check',
+    stageTimestamps: { pending: now },
   };
 }
 

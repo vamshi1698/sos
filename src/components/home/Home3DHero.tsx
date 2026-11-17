@@ -26,7 +26,7 @@ interface Home3DHeroProps {
 }
 
 const STATS = [
-  { value: '7', label: 'Sample ambulances', note: 'Fictional fleet data' },
+  { value: '30', label: 'Sample ambulances', note: 'Fictional fleet data' },
   { value: '4', label: 'Request channels', note: 'Phone, WhatsApp, app, API' },
   { value: '6', label: 'Languages planned', note: 'Kannada to Malayalam' },
   { value: '< 45s', label: 'Avg Dispatch Time', note: 'Instant triage & routing' },

@@ -1697,6 +1697,11 @@ export default function ThreeAmbulanceScene({
     const currentAmbTarget = new THREE.Vector3(...initialConfig.ambulancePos);
     let targetRotY = initialConfig.ambulanceRotY;
 
+    // Section 5 Arrival Braking & Halting Animation State
+    let lastSection = initialConfig.id;
+    let arrivalStartTime = 0;
+    const ARRIVAL_DURATION = 1.6; // 1.6s cinematic drive-in, brake and stop
+
     // Vector for speech bubble 2D screen-space projection
     const ambulanceRoofWorldPos = new THREE.Vector3();
 
@@ -1709,31 +1714,102 @@ export default function ThreeAmbulanceScene({
       const { currentSection: activeSec, strobesEnabled: strobesOn, beamEnabled: beamOn, onAmbulanceScreenPos: posCallback } = stateRef.current;
       const targetConfig = SECTIONS_CONFIG[Math.max(0, Math.min(4, activeSec - 1))] || SECTIONS_CONFIG[0];
 
+      // Detect transition into Section 5 (Hospital Arrival)
+      if (activeSec === 5 && lastSection !== 5) {
+        arrivalStartTime = elapsed;
+        ambulanceGroup.position.set(1.05, 0, -6.2);
+        ambulanceGroup.rotation.set(0, 0, 0);
+      }
+      lastSection = activeSec;
+
       // 1. Smooth Camera Transition (Lerp)
       currentCamTarget.set(...targetConfig.camPos);
       currentLookAt.set(...targetConfig.lookAt);
       camera.position.lerp(currentCamTarget, 0.045);
       camera.lookAt(currentLookAt);
 
-      // 2. Smooth Ambulance Position & Rotation
-      currentAmbTarget.set(...targetConfig.ambulancePos);
-      targetRotY = targetConfig.ambulanceRotY;
-      ambulanceGroup.position.lerp(currentAmbTarget, 0.04);
-      ambulanceGroup.rotation.y = THREE.MathUtils.lerp(ambulanceGroup.rotation.y, targetRotY, 0.04);
+      // 2. Smooth Ambulance Motion & Realistic Arrival Braking Animation
+      let groundMove = 0;
+      if (activeSec === 5) {
+        const arrivalElapsed = elapsed - arrivalStartTime;
+        const normTime = Math.min(1.0, Math.max(0, arrivalElapsed / ARRIVAL_DURATION));
+        // Cubic deceleration: brisk approach, smooth deceleration to a dead stop
+        const ease = 1 - Math.pow(1 - normTime, 3);
 
-      // Engine subtle idle vibration
-      if (targetConfig.speed > 0) {
-        ambulanceGroup.position.y = THREE.MathUtils.lerp(ambulanceGroup.position.y, Math.sin(elapsed * 24) * 0.018, 0.1);
+        const startZ = -6.2;
+        const targetZ = targetConfig.ambulancePos[2]; // 0.4
+        const startX = 1.05;
+        const targetX = targetConfig.ambulancePos[0]; // 0.9
+        const targetRotY = targetConfig.ambulanceRotY; // -0.1
+
+        const prevZ = ambulanceGroup.position.z;
+        const newZ = startZ + (targetZ - startZ) * ease;
+        const newX = startX + (targetX - startX) * ease;
+        const newRotY = targetRotY * ease;
+
+        ambulanceGroup.position.x = newX;
+        ambulanceGroup.position.z = newZ;
+        ambulanceGroup.rotation.y = newRotY;
+
+        // Front nose suspension braking dip & spring rebound
+        if (normTime < 0.82) {
+          // Dynamic pitch down under braking deceleration
+          const brakeForce = Math.sin((normTime / 0.82) * Math.PI);
+          ambulanceGroup.rotation.x = brakeForce * 0.038;
+        } else if (normTime < 1.0) {
+          // Rebound oscillation as wheels halt
+          const reboundProgress = (normTime - 0.82) / 0.18;
+          ambulanceGroup.rotation.x = -Math.sin(reboundProgress * Math.PI) * 0.015;
+        } else {
+          // Resting idle breathing
+          ambulanceGroup.rotation.x = 0;
+          ambulanceGroup.position.y = Math.sin(elapsed * 3) * 0.008;
+        }
+
+        // Wheel spin synchronized to actual translation along driveway
+        const travelDeltaZ = newZ - prevZ;
+        const arrivalWheelSpin = travelDeltaZ / 0.38;
+        wheels.forEach((w) => {
+          w.rotation.x += arrivalWheelSpin;
+        });
+
+        // Tail brake lights flare bright red while braking, then return to normal glow
+        const isBraking = normTime > 0.05 && normTime < 0.92;
+        taillightMat.emissiveIntensity = isBraking ? 4.5 : 2.0;
+
+        // SAFE ARRIVAL 3D badge pop-in with spring bounce upon halting
+        if (normTime < 0.75) {
+          safeArrivalMesh.scale.set(0.001, 0.001, 0.001);
+        } else {
+          const badgeProgress = Math.min(1.0, (normTime - 0.75) / 0.25);
+          const badgeBounce = Math.sin(badgeProgress * Math.PI * 0.5) + Math.sin(badgeProgress * Math.PI) * 0.24;
+          safeArrivalMesh.scale.set(badgeBounce, badgeBounce, badgeBounce);
+          safeArrivalMesh.position.set(0.9, 2.7, 1.3);
+          safeArrivalMesh.rotation.y = Math.PI * 0.25;
+        }
       } else {
-        ambulanceGroup.position.y = THREE.MathUtils.lerp(ambulanceGroup.position.y, Math.sin(elapsed * 3) * 0.012, 0.05);
-      }
+        // Sections 1-4 standard handling
+        taillightMat.emissiveIntensity = 2.0;
+        currentAmbTarget.set(...targetConfig.ambulancePos);
+        targetRotY = targetConfig.ambulanceRotY;
+        ambulanceGroup.position.lerp(currentAmbTarget, 0.04);
+        ambulanceGroup.rotation.y = THREE.MathUtils.lerp(ambulanceGroup.rotation.y, targetRotY, 0.04);
+        ambulanceGroup.rotation.x = 0;
 
-      // 3. Wheel rotation & Synchronized Environment Motion
-      const groundMove = targetConfig.speed * 8.5 * delta;
-      const wheelSpin = groundMove > 0 ? groundMove / 0.42 : 0;
-      wheels.forEach((w) => {
-        w.rotation.x += wheelSpin;
-      });
+        // Engine subtle idle/drive vibration
+        if (targetConfig.speed > 0) {
+          ambulanceGroup.position.y = THREE.MathUtils.lerp(ambulanceGroup.position.y, Math.sin(elapsed * 24) * 0.018, 0.1);
+        } else {
+          ambulanceGroup.position.y = THREE.MathUtils.lerp(ambulanceGroup.position.y, Math.sin(elapsed * 3) * 0.012, 0.05);
+        }
+
+        // Wheel rotation based on ground speed
+        groundMove = targetConfig.speed * 8.5 * delta;
+        const wheelSpin = groundMove > 0 ? groundMove / 0.42 : 0;
+        wheels.forEach((w) => {
+          w.rotation.x += wheelSpin;
+        });
+      }
 
       // Animate Trees, Street Lamps, and Buildings scrolling backward as the ambulance drives forward
       if (groundMove > 0 && activeSec !== 5) {
@@ -1844,13 +1920,6 @@ export default function ThreeAmbulanceScene({
         if (carBlue.position.z > 32) carBlue.position.z = -22;
       }
 
-
-      // 3D SAFE ARRIVAL badge floating over the ambulance in Section 5 (media_1794819686574_69836512.jpg)
-      if (targetConfig.showHospital) {
-        safeArrivalMesh.position.set(0.9, 2.7, 1.3);
-        safeArrivalMesh.rotation.y = Math.PI * 0.25;
-      }
-
       // Animate Radar Ring Pulsing
       if (targetConfig.showRadar) {
         const pulse = 1 + (Math.sin(elapsed * 4) + 1) * 0.25;
@@ -1885,26 +1954,39 @@ export default function ThreeAmbulanceScene({
       // 7. Calculate Speech Bubble 2D Projection
       if (posCallback) {
         if (activeSec === 5) {
-          // In Section 5, offset speech bubble to the rear-right of the ambulance matching reference image
-          ambulanceRoofWorldPos.set(
-            ambulanceGroup.position.x + 1.1,
-            ambulanceGroup.position.y + 2.1,
-            ambulanceGroup.position.z - 0.7
-          );
+          const arrivalElapsed = elapsed - arrivalStartTime;
+          const isHalted = arrivalElapsed >= ARRIVAL_DURATION * 0.82;
+          if (isHalted) {
+            // In Section 5, offset speech bubble to the rear-right of the ambulance matching reference image
+            ambulanceRoofWorldPos.set(
+              ambulanceGroup.position.x + 1.1,
+              ambulanceGroup.position.y + 2.1,
+              ambulanceGroup.position.z - 0.7
+            );
+            ambulanceRoofWorldPos.project(camera);
+
+            const isBehindCamera = ambulanceRoofWorldPos.z > 1;
+            const x = (ambulanceRoofWorldPos.x * 0.5 + 0.5) * width;
+            const y = (-ambulanceRoofWorldPos.y * 0.5 + 0.5) * height;
+
+            posCallback(x, y, !isBehindCamera);
+          } else {
+            posCallback(0, 0, false);
+          }
         } else {
           ambulanceRoofWorldPos.set(
             ambulanceGroup.position.x,
             ambulanceGroup.position.y + 2.5,
             ambulanceGroup.position.z
           );
+          ambulanceRoofWorldPos.project(camera);
+
+          const isBehindCamera = ambulanceRoofWorldPos.z > 1;
+          const x = (ambulanceRoofWorldPos.x * 0.5 + 0.5) * width;
+          const y = (-ambulanceRoofWorldPos.y * 0.5 + 0.5) * height;
+
+          posCallback(x, y, !isBehindCamera);
         }
-        ambulanceRoofWorldPos.project(camera);
-
-        const isBehindCamera = ambulanceRoofWorldPos.z > 1;
-        const x = (ambulanceRoofWorldPos.x * 0.5 + 0.5) * width;
-        const y = (-ambulanceRoofWorldPos.y * 0.5 + 0.5) * height;
-
-        posCallback(x, y, !isBehindCamera);
       }
 
       renderer.render(scene, camera);

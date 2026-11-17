@@ -65,7 +65,7 @@ const SIM_STEPS = [
   {
     step: 5,
     title: 'System Scans All Nearby Ambulances for Fastest Match',
-    description: 'Dispatch evaluates all 6 fleet ambulances in real-time by distance, traffic, and life-support equipment.',
+    description: 'Dispatch evaluates all fleet ambulances in real-time by distance, traffic, and life-support equipment.',
     actor: 'Central Dispatch',
     badge: 'Fleet Scan',
   },
@@ -314,7 +314,7 @@ export default function SimulationPage({
           popover: {
             title: 'Bangalore Fleet Status',
             description:
-              'Central Dispatch monitors 6 live ambulances across the city, scoring proximity, traffic, and onboard life-support equipment to assign the best unit.',
+              'Central Dispatch monitors fleet ambulances across the city, scoring proximity, traffic, and onboard life-support equipment to assign the best unit.',
             side: 'top',
             align: 'center',
           },
@@ -526,20 +526,32 @@ export default function SimulationPage({
       </div>
 
       {/* =================================================================== */}
-      {/* 2. BPMN SWIMLANE DIAGRAM: DIRECTLY UNDER SIMULATION START! */}
+      {/* 2. LIVE POV SCREENS (PATIENT APP, DRIVER IN-CAB & HOSPITAL ER RECEIVING) */}
       {/* =================================================================== */}
-      <div id="bpmn-process-flow">
-        <SwimlaneWorkflowVisualizer
-          requests={requests}
-          ambulances={ambulances}
-          selectedRequest={activeRequest}
+      <div id="dual-pov-screens">
+        <DualPovScreens
+          request={activeRequest}
+          assignedAmbulance={assignedAmb}
           currentSimStep={currentStep}
-          isDeclineSimulated={isDeclineSimulated}
+          selectedServiceId={selectedServiceId}
+          onSelectServiceId={(serviceId: string) => {
+            setSelectedServiceId(serviceId);
+            if (onSpawnServiceDemo) onSpawnServiceDemo(serviceId);
+            setCurrentStep(1);
+            setIsPlaying(false);
+          }}
+          onAdvanceStage={handleNextStep}
+          onOperatorDecline={handleSimulateDecline}
+          onOperatorAccept={() => {
+            if (activeRequest && onOperatorAccept) onOperatorAccept(activeRequest.id);
+            handleNextStep();
+          }}
+          onResetSimulation={handleResetSimulation}
         />
       </div>
 
       {/* =================================================================== */}
-      {/* 3. DISPATCHING PART: 4 TO 6 AMBULANCES POV IN ONE ROW */}
+      {/* 3. DISPATCHING PART: CENTRAL FLEET POV */}
       {/* =================================================================== */}
       <div id="dispatch-fleet-row" className="rounded-2xl border-4 border-ink bg-white p-3.5 shadow-panel">
         <DispatchFleetRow
@@ -550,19 +562,15 @@ export default function SimulationPage({
       </div>
 
       {/* =================================================================== */}
-      {/* 4. DUAL LIVE POV SCREENS (PATIENT MOBILE APP & DRIVER IN-CAB MDT) */}
+      {/* 4. BPMN SWIMLANE DIAGRAM: LIVE PROCESS FLOW */}
       {/* =================================================================== */}
-      <div id="dual-pov-screens">
-        <DualPovScreens
-          request={activeRequest}
-          assignedAmbulance={assignedAmb}
+      <div id="bpmn-process-flow">
+        <SwimlaneWorkflowVisualizer
+          requests={requests}
+          ambulances={ambulances}
+          selectedRequest={activeRequest}
           currentSimStep={currentStep}
-          onAdvanceStage={handleNextStep}
-          onOperatorDecline={handleSimulateDecline}
-          onOperatorAccept={() => {
-            if (activeRequest && onOperatorAccept) onOperatorAccept(activeRequest.id);
-            handleNextStep();
-          }}
+          isDeclineSimulated={isDeclineSimulated}
         />
       </div>
     </div>

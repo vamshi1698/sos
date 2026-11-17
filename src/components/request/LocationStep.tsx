@@ -16,7 +16,7 @@ import {
   getCoordinatesForArea,
   QUICK_LOCATION_PRESETS,
 } from '@/data/locations';
-import type { DraftErrors, RequestDraft } from '@/lib/requestValidation';
+import { sanitizeText, type DraftErrors, type RequestDraft } from '@/lib/requestValidation';
 
 interface LocationStepProps {
   draft: RequestDraft;
@@ -46,6 +46,7 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
           const areaData = BENGALURU_LOCATIONS[matchedArea];
 
           onChange('pickupArea', matchedArea);
+          onChange('coords', { lat, lng });
           onChange(
             'pickupNote',
             areaData?.defaultLandmark || `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`
@@ -56,7 +57,9 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
         },
         () => {
           setTimeout(() => {
+            const fallbackCoords = getCoordinatesForArea('Koramangala');
             onChange('pickupArea', 'Koramangala');
+            onChange('coords', fallbackCoords);
             onChange('pickupNote', 'Near Forum Mall, 80ft Road Junction');
             setDetecting(false);
             setDetectedSuccess(true);
@@ -66,7 +69,9 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
       );
     } else {
       setTimeout(() => {
+        const fallbackCoords = getCoordinatesForArea('Koramangala');
         onChange('pickupArea', 'Koramangala');
+        onChange('coords', fallbackCoords);
         onChange('pickupNote', 'Near Forum Mall, 80ft Road Junction');
         setDetecting(false);
         setDetectedSuccess(true);
@@ -75,7 +80,9 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
   };
 
   const handleSelectPreset = (preset: typeof QUICK_LOCATION_PRESETS[0]) => {
+    const presetCoords = getCoordinatesForArea(preset.area);
     onChange('pickupArea', preset.area);
+    onChange('coords', presetCoords);
     onChange('pickupNote', preset.landmark);
     setDetectedSuccess(true);
   };
@@ -156,6 +163,7 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
               const nextArea = e.target.value;
               onChange('pickupArea', nextArea);
               if (nextArea && BENGALURU_LOCATIONS[nextArea]) {
+                onChange('coords', BENGALURU_LOCATIONS[nextArea].coords);
                 onChange('pickupNote', BENGALURU_LOCATIONS[nextArea].defaultLandmark);
               }
             }}
@@ -178,10 +186,11 @@ export default function LocationStep({ draft, errors, onChange }: LocationStepPr
           <input
             id="pickupNote"
             type="text"
+            maxLength={150}
             className="comic-input text-xs sm:text-sm py-1.5 px-2.5"
             placeholder="e.g. Near Forum Mall, 80ft Road"
             value={draft.pickupNote}
-            onChange={(e) => onChange('pickupNote', e.target.value)}
+            onChange={(e) => onChange('pickupNote', sanitizeText(e.target.value, 150))}
           />
         </FormField>
       </div>

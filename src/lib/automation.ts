@@ -2,6 +2,7 @@ import type { DispatchAction, DispatchState } from '@/lib/dispatch';
 import { rankCandidates } from '@/lib/matching';
 
 const MATCH_DELAY_MS = 1500;
+const USER_REQUEST_HOLD_MS = 60000; // 1 minute manual exploration window before automating user requests
 const OPERATOR_RESPONSE_MS = 3000;
 const STAGE_DURATION_MS: Partial<Record<string, number>> = {
   accepted: 4000,
@@ -14,7 +15,13 @@ export function nextAutomatedAction(state: DispatchState, now: number): Dispatch
 
   if (state.autoDispatch) {
     const pending = state.requests
-      .filter((r) => r.status === 'pending' && now - r.createdAt >= MATCH_DELAY_MS)
+      .filter((r) => {
+        if (r.status !== 'pending') return false;
+        // User-submitted requests hold for 1 full minute (60s) so user can explore dispatch control
+        const isUserRequest = r.channel === 'Mobile app' && !r.aiCaptured;
+        const requiredDelay = isUserRequest ? USER_REQUEST_HOLD_MS : MATCH_DELAY_MS;
+        return now - r.createdAt >= requiredDelay;
+      })
       .sort((a, b) => a.createdAt - b.createdAt);
     for (const request of pending) {
       const [best] = rankCandidates(state.ambulances, request);

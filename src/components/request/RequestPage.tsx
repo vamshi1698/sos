@@ -1,15 +1,20 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Shield } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Shield } from 'lucide-react';
 import LocationStep from '@/components/request/LocationStep';
 import PatientStep from '@/components/request/PatientStep';
 import ReviewStep from '@/components/request/ReviewStep';
 import RequestConfirmation from '@/components/request/RequestConfirmation';
 import {
+  sanitizeAge,
+  sanitizeName,
+  sanitizePhone,
+  sanitizeText,
   validateLocation,
   validatePatient,
   type DraftErrors,
   type RequestDraft,
 } from '@/lib/requestValidation';
+import { sendDispatchSmsAlerts, type DispatchAlertResult } from '@/lib/twilioSms';
 import type { NewRequestFields } from '@/lib/channels';
 import type { View } from '@/types';
 
@@ -35,7 +40,9 @@ export default function RequestPage({ onCreate, onNavigate }: RequestPageProps) 
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<RequestDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<DraftErrors>({});
+  const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [smsResult, setSmsResult] = useState<DispatchAlertResult | null>(null);
 
   const update = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -57,22 +64,48 @@ export default function RequestPage({ onCreate, onNavigate }: RequestPageProps) 
     setStep((s) => Math.max(s - 1, 0));
   };
 
-  const submit = () => {
+  const submit = async () => {
+    setSubmitting(true);
+    const sanitizedName = sanitizeName(draft.patientName.trim()) || 'Unknown Patient';
+    const sanitizedPhone = sanitizePhone(draft.patientPhone.trim());
+    const sanitizedNote = sanitizeText(draft.pickupNote.trim(), 150);
+    const sanitizedDesc = sanitizeText(draft.description.trim(), 400);
+    const sanitizedAge = draft.patientAge ? Number(sanitizeAge(draft.patientAge)) : null;
+
     const id = onCreate({
       channel: 'Mobile app',
       pickupArea: draft.pickupArea,
-      pickupNote: draft.pickupNote.trim(),
-      patientName: draft.patientName.trim() || 'Unknown Patient',
-      patientPhone: draft.patientPhone.trim(),
-      patientAge: draft.patientAge ? Number(draft.patientAge) : null,
-      description: draft.description.trim(),
+      pickupNote: sanitizedNote,
+      patientName: sanitizedName,
+      patientPhone: sanitizedPhone,
+      patientAge: sanitizedAge,
+      description: sanitizedDesc,
       category: draft.category,
       serviceType: draft.serviceType,
       network: 'private',
       aiCaptured: false,
       externalRef: null,
     });
-    setSubmittedId(id);
+
+    // Transmit Twilio SMS alerts to both the patient and Central Admin (8431591698)
+    try {
+      const res = await sendDispatchSmsAlerts({
+        requestId: id,
+        patientName: sanitizedName,
+        patientPhone: sanitizedPhone,
+        pickupArea: draft.pickupArea,
+        pickupNote: sanitizedNote,
+        coords: draft.coords,
+        serviceType: draft.serviceType,
+        category: draft.category,
+      });
+      setSmsResult(res);
+    } catch (err) {
+      console.error('Failed to send Twilio SMS:', err);
+    } finally {
+      setSubmitting(false);
+      setSubmittedId(id);
+    }
   };
 
   if (submittedId) {
@@ -80,8 +113,12 @@ export default function RequestPage({ onCreate, onNavigate }: RequestPageProps) 
       <RequestConfirmation
         requestId={submittedId}
         onNavigate={onNavigate}
+        smsResult={smsResult}
+        patientPhone={draft.patientPhone}
+        pickupArea={draft.pickupArea}
         onNewRequest={() => {
           setSubmittedId(null);
+          setSmsResult(null);
           setDraft(EMPTY_DRAFT);
           setStep(0);
         }}
@@ -174,10 +211,20 @@ export default function RequestPage({ onCreate, onNavigate }: RequestPageProps) 
             <button
               type="button"
               onClick={submit}
-              className="comic-button-primary px-6 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 shadow-panel-sm"
+              disabled={submitting}
+              className="comic-button-primary px-6 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 shadow-panel-sm disabled:opacity-50"
             >
-              <Check className="h-4 w-4 stroke-[3]" />
-              <span>Confirm & Dispatch</span>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Transmitting SMS...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 stroke-[3]" />
+                  <span>Confirm & Dispatch</span>
+                </>
+              )}
             </button>
           )}
         </div>

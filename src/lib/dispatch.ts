@@ -194,6 +194,7 @@ export function dispatchReducer(state: DispatchState, action: DispatchAction): D
             distanceKm: dist,
             etaMinutes: eta,
             workflowStep: 'amb_receive',
+            stageTimestamps: { ...r.stageTimestamps, assigned: action.at },
           })),
           ambulances: updateAmbulance(state.ambulances, ambulance.id, {
             status: 'busy',
@@ -233,6 +234,7 @@ export function dispatchReducer(state: DispatchState, action: DispatchAction): D
             status: 'accepted',
             stageAt: action.at,
             workflowStep: 'amb_navigate_patient',
+            stageTimestamps: { ...r.stageTimestamps, accepted: action.at },
           })),
           ambulances: updateAmbulance(state.ambulances, request.ambulanceId, {
             speed: 42,
@@ -316,6 +318,7 @@ export function dispatchReducer(state: DispatchState, action: DispatchAction): D
             workflowStep: nextStep,
             distanceKm: next === 'on_scene' ? 0.3 : next === 'completed' ? 0 : r.distanceKm,
             etaMinutes: next === 'on_scene' ? 1 : next === 'completed' ? 0 : r.etaMinutes,
+            stageTimestamps: { ...r.stageTimestamps, [next]: action.at },
           })),
           ambulances,
         },

@@ -11,7 +11,14 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import FormField from '@/components/request/FormField';
 import { MOST_USED_SERVICES, type EmergencyServiceOption } from '@/data/services';
-import type { DraftErrors, RequestDraft } from '@/lib/requestValidation';
+import {
+  sanitizeAge,
+  sanitizeName,
+  sanitizePhone,
+  sanitizeText,
+  type DraftErrors,
+  type RequestDraft,
+} from '@/lib/requestValidation';
 
 interface PatientStepProps {
   draft: RequestDraft;
@@ -94,7 +101,8 @@ export default function PatientStep({ draft, errors, onChange }: PatientStepProp
                 className={`${inputClass} flex-1`}
                 placeholder="Name (or click Unknown)"
                 value={draft.patientName}
-                onChange={(e) => onChange('patientName', e.target.value)}
+                maxLength={50}
+                onChange={(e) => onChange('patientName', sanitizeName(e.target.value))}
                 autoComplete="name"
               />
               <button
@@ -124,8 +132,9 @@ export default function PatientStep({ draft, errors, onChange }: PatientStepProp
               type="tel"
               className={inputClass}
               placeholder="+91 98765 43210"
+              maxLength={16}
               value={draft.patientPhone}
-              onChange={(e) => onChange('patientPhone', e.target.value)}
+              onChange={(e) => onChange('patientPhone', sanitizePhone(e.target.value))}
               autoComplete="tel"
             />
           </FormField>
@@ -136,13 +145,13 @@ export default function PatientStep({ draft, errors, onChange }: PatientStepProp
           <FormField label="Age (Optional)" htmlFor="patientAge" error={errors.patientAge}>
             <input
               id="patientAge"
-              type="number"
-              min={0}
-              max={120}
+              type="text"
+              inputMode="numeric"
+              maxLength={3}
               className={inputClass}
               placeholder="e.g. 6 or 65"
               value={draft.patientAge}
-              onChange={(e) => onChange('patientAge', e.target.value)}
+              onChange={(e) => onChange('patientAge', sanitizeAge(e.target.value))}
             />
           </FormField>
         </div>
@@ -209,10 +218,11 @@ export default function PatientStep({ draft, errors, onChange }: PatientStepProp
         <textarea
           id="description"
           rows={2}
+          maxLength={400}
           className={`${inputClass} resize-none`}
           placeholder="e.g. Road accident with head trauma, severe pain, patient responsive..."
           value={draft.description}
-          onChange={(e) => onChange('description', e.target.value)}
+          onChange={(e) => onChange('description', sanitizeText(e.target.value, 400))}
         />
       </FormField>
 
