@@ -77,6 +77,18 @@ export type WorkflowStepId =
   | 'amb_complete_trip'
   | 'amb_complete';
 
+export interface TripAuditEntry {
+  step: number;
+  stage: RequestStatus | 'declined';
+  title: string;
+  timestamp: number;
+  timeFormatted: string;
+  elapsedSeconds?: number;
+  description: string;
+  actor?: string;
+  status: 'completed' | 'active' | 'pending';
+}
+
 export interface AmbulanceRequest {
   id: string;
   channel: Channel;
@@ -104,6 +116,8 @@ export interface AmbulanceRequest {
   rating?: number;
   feedback?: string;
   workflowStep?: WorkflowStepId;
+  stageTimestamps?: Partial<Record<RequestStatus, number>>;
+  auditLog?: TripAuditEntry[];
 }
 
 export interface DispatchEvent {

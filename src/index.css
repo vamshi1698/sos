@@ -292,6 +292,26 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .comic-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .comic-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 9999px;
+  }
+  .comic-scrollbar::-webkit-scrollbar-thumb {
+    background: #1c1c1c;
+    border-radius: 9999px;
+  }
+  .comic-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #e52421;
+  }
+  .comic-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #1c1c1c rgba(0, 0, 0, 0.05);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

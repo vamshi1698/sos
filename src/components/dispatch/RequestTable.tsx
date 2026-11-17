@@ -29,6 +29,7 @@ export default function RequestTable({ requests, ambulances, selectedId, onSelec
           {requests.map((request) => {
             const ambulance = ambulances.find((a) => a.id === request.ambulanceId);
             const selected = request.id === selectedId;
+            const isUserRequest = request.channel === 'Mobile app' && !request.aiCaptured;
             return (
               <tr
                 key={request.id}
@@ -45,7 +46,16 @@ export default function RequestTable({ requests, ambulances, selectedId, onSelec
                   selected ? 'bg-comic-yellow' : 'bg-white hover:bg-comic-cream'
                 }`}
               >
-                <td className="px-3 py-3 font-display text-lg tracking-wide">{request.id}</td>
+                <td className="px-3 py-3 font-display text-lg tracking-wide">
+                  <div className="flex items-center gap-1.5">
+                    <span>{request.id}</span>
+                    {isUserRequest && (
+                      <span className="rounded bg-comic-red px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        User App
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-3 py-3">{request.channel}</td>
                 <td className="px-3 py-3">{TIME_FORMAT.format(request.createdAt)}</td>
                 <td className="px-3 py-3">{request.pickupArea}</td>

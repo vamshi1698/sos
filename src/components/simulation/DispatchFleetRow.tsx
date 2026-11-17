@@ -23,8 +23,8 @@ export default function DispatchFleetRow({
   activeRequest,
   onAssignAmbulance,
 }: DispatchFleetRowProps) {
-  // Show up to 6 ambulances in one row
-  const fleet6 = ambulances.slice(0, 6);
+  // Show top fleet ambulances for quick selection
+  const fleetDisplay = ambulances.slice(0, 12);
 
   const pickupCoords =
     activeRequest?.pickupCoords ||
@@ -42,7 +42,7 @@ export default function DispatchFleetRow({
           </span>
           <div>
             <h3 className="font-display text-xl tracking-wide text-ink">
-              Central Dispatch Fleet (6 Ambulances In-Cab POV)
+              Central Dispatch Fleet ({ambulances.length} Ambulances In-Cab POV)
             </h3>
             <p className="text-xs text-ink/70">
               Live in-cab driver status across Bangalore sectors. Showing real-time distance from{' '}
@@ -52,13 +52,13 @@ export default function DispatchFleetRow({
         </div>
 
         <span className="comic-tag bg-comic-yellow text-xs font-bold">
-          {fleet6.filter((a) => a.status === 'available').length} Units Standby • 1 Assigned
+          {ambulances.filter((a) => a.status === 'available').length} Available • {ambulances.filter((a) => a.status === 'busy').length} Busy
         </span>
       </div>
 
-      {/* 6 Ambulances in ONE ROW */}
+      {/* Ambulances Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {fleet6.map((amb, index) => {
+        {fleetDisplay.map((amb, index) => {
           const isAssigned = activeRequest?.ambulanceId === amb.id;
           const ambCoords = amb.coords || getCoordinatesForArea(amb.area);
           const distanceKm = calculateDistanceKm(ambCoords, pickupCoords);

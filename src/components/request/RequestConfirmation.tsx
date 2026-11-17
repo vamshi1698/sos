@@ -1,29 +1,30 @@
 import { useState } from 'react';
 import {
-  Ambulance,
   CheckCircle2,
   Clock,
-  Compass,
-  FileText,
-  Hospital,
   LayoutDashboard,
   MapPin,
   RotateCcw,
-  Star,
-  Zap,
 } from 'lucide-react';
 import type { View } from '@/types';
+import type { DispatchAlertResult } from '@/lib/twilioSms';
 
 interface RequestConfirmationProps {
   requestId: string;
   onNavigate: (view: View) => void;
   onNewRequest: () => void;
+  smsResult?: DispatchAlertResult | null;
+  patientPhone?: string;
+  pickupArea?: string;
 }
 
 export default function RequestConfirmation({
   requestId,
   onNavigate,
   onNewRequest,
+  smsResult,
+  patientPhone,
+  pickupArea,
 }: RequestConfirmationProps) {
   const [rating, setRating] = useState<number>(5);
   const [feedbackSent, setFeedbackSent] = useState<boolean>(false);
@@ -42,6 +43,70 @@ export default function RequestConfirmation({
             {requestId}
           </span>
         </p>
+
+        {/* Twilio SMS Dispatch Notification Card */}
+        <div className="mt-5 rounded-lg border-2 border-ink bg-slate-50 p-4 text-left space-y-2.5">
+          <div className="flex items-center justify-between border-b border-ink/15 pb-2">
+            <span className="font-display text-xs sm:text-sm tracking-wide text-ink flex items-center gap-1.5 font-bold">
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-500 text-white text-[11px]">✓</span>
+              Twilio SMS Dispatch Notifications
+            </span>
+            <span className="rounded border border-emerald-600 bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
+              Transmitted
+            </span>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 rounded bg-white p-2.5 border border-ink/20">
+              <div>
+                <span className="font-bold text-ink">📱 SMS to Caller Phone: </span>
+                <span className="font-mono text-ink/80">{smsResult?.userPhone || patientPhone}</span>
+                <p className="text-[11px] text-ink/70 mt-0.5">
+                  "Pranrath Ambulance is coming to your location: {smsResult?.mapLink} ({pickupArea}). Ref ID: {requestId}. Emergency crew is en route."
+                </p>
+              </div>
+              {smsResult?.mapLink && (
+                <a
+                  href={smsResult.mapLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded border-2 border-ink bg-comic-yellow px-2 py-1 text-[11px] font-bold text-ink hover:bg-comic-yellow-deep transition-all flex items-center gap-1 shrink-0 shadow-xs"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-comic-red" />
+                  Open Google Maps
+                </a>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-1.5 rounded bg-white p-2.5 border border-ink/20">
+              <div>
+                <span className="font-bold text-ink">🚨 SMS to Central Emergency Admin</span>
+                <p className="text-[11px] text-ink/70 mt-0.5">
+                  Full patient details, emergency service type, and Google Maps pin transmitted to duty admin.
+                </p>
+              </div>
+              <span className="rounded bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5">
+                Admin Alerted
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 1-Minute Dispatch Window Card */}
+        <div className="mt-4 rounded-lg border-2 border-amber-600 bg-amber-50 p-3.5 text-left text-xs space-y-1.5 shadow-xs">
+          <div className="flex items-center justify-between font-bold text-amber-950">
+            <span className="flex items-center gap-1.5 font-display text-sm tracking-wide">
+              <Clock className="h-4 w-4 animate-spin text-amber-700" />
+              1-Minute Dispatch Exploration Window Active
+            </span>
+            <span className="rounded bg-amber-600 px-2 py-0.5 text-white font-mono text-[11px] font-bold">
+              60s Hold
+            </span>
+          </div>
+          <p className="text-amber-900 leading-relaxed">
+            Your request is in the pending queue in Central Dispatch. You can immediately jump into the <strong>Dispatch Console</strong> to explore available ambulances, review response times, and assign manually before automated matching takes over after 1 minute.
+          </p>
+        </div>
 
         {/* Lane 1 BPMN Patient App Lifecycle Tracker */}
         <div className="mt-6 border-4 border-blue-600 bg-blue-50/60 p-4 rounded-lg text-left space-y-3">
@@ -78,17 +143,10 @@ export default function RequestConfirmation({
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button
             type="button"
-            onClick={() => onNavigate('simulation')}
-            className="comic-button-primary px-5 py-2.5 text-base flex items-center gap-2"
-          >
-            <Zap className="h-5 w-5" /> Track in BPMN Simulation Demo
-          </button>
-          <button
-            type="button"
             onClick={() => onNavigate('dispatch')}
-            className="comic-button-yellow px-5 py-2.5 text-base flex items-center gap-2"
+            className="comic-button-primary bg-comic-yellow text-ink border-4 border-ink px-6 py-2.5 text-base flex items-center gap-2 shadow-panel hover:bg-comic-yellow-deep font-bold"
           >
-            <LayoutDashboard className="h-5 w-5" /> View Dispatch Console
+            <LayoutDashboard className="h-5 w-5" /> Explore in Dispatch Console (1-Min Window)
           </button>
           <button
             type="button"

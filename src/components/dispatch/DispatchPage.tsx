@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ExternalLink, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Clock, ExternalLink, Sparkles, Zap } from 'lucide-react';
 import ActivityLog from '@/components/dispatch/ActivityLog';
 import AmbulanceFleet from '@/components/dispatch/AmbulanceFleet';
 import AssignmentPanel from '@/components/dispatch/AssignmentPanel';
@@ -46,7 +46,34 @@ export default function DispatchPage({
 }: DispatchPageProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showWorkflowDrawer, setShowWorkflowDrawer] = useState<boolean>(false);
-  const selected = requests.find((r) => r.id === selectedId) ?? requests[0];
+
+  // Automatically find any recent user-submitted pending or assigned request
+  const userRequest = requests.find((r) => r.channel === 'Mobile app' && !r.aiCaptured);
+  const pendingUserRequest = requests.find(
+    (r) => r.channel === 'Mobile app' && !r.aiCaptured && r.status === 'pending'
+  );
+
+  const selected = (selectedId ? requests.find((r) => r.id === selectedId) : null) ?? pendingUserRequest ?? userRequest ?? requests[0];
+
+  // Seconds remaining for pending user request
+  const [userHoldSeconds, setUserHoldSeconds] = useState<number>(() => {
+    if (!pendingUserRequest) return 0;
+    return Math.max(0, Math.ceil((60000 - (Date.now() - pendingUserRequest.createdAt)) / 1000));
+  });
+
+  useEffect(() => {
+    if (!pendingUserRequest) {
+      setUserHoldSeconds(0);
+      return;
+    }
+    const updateCountdown = () => {
+      const left = Math.max(0, Math.ceil((60000 - (Date.now() - pendingUserRequest.createdAt)) / 1000));
+      setUserHoldSeconds(left);
+    };
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 500);
+    return () => clearInterval(timer);
+  }, [pendingUserRequest?.id, pendingUserRequest?.createdAt]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-10 sm:px-6">
@@ -74,6 +101,42 @@ export default function DispatchPage({
           </button>
         </div>
       </header>
+
+      {/* User-submitted request notification banner with 1-min exploration countdown */}
+      {pendingUserRequest && userHoldSeconds > 0 && (
+        <div className="rounded-xl border-4 border-ink bg-comic-yellow p-4 shadow-panel animate-pop-in">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-white shadow-xs">
+                <Clock className="h-5 w-5 animate-spin text-ink" />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-display text-xl text-ink font-bold">
+                    User Request Received: {pendingUserRequest.id}
+                  </h3>
+                  <span className="comic-tag bg-comic-red text-white text-xs">
+                    Manual Exploration Window
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-ink/80">
+                  Patient: <span className="font-bold">{pendingUserRequest.patientName}</span> ({pendingUserRequest.pickupArea}) • 
+                  Automation paused for <span className="font-bold font-mono text-comic-red text-base">{userHoldSeconds}s</span> so you can explore candidates and test manual dispatch.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedId(pendingUserRequest.id)}
+                className="comic-button-primary px-4 py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-panel-sm"
+              >
+                <Sparkles className="h-4 w-4" /> Inspect & Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Optional In-Page Swimlane Diagram */}
       {showWorkflowDrawer && (
@@ -110,7 +173,7 @@ export default function DispatchPage({
         <>
           <KpiCards requests={requests} ambulances={ambulances} />
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+          <div className="grid gap-6 xl:grid-cols-[1fr_420px] items-start">
             <div className="space-y-3">
               <h2 className="text-3xl text-ink">Request queue</h2>
               <RequestTable
@@ -126,10 +189,11 @@ export default function DispatchPage({
               autoDispatch={autoDispatch}
               onAssign={onAssign}
               onDecline={onDecline}
+              events={events}
             />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+          <div className="grid gap-6 xl:grid-cols-[1fr_420px] items-start">
             <AmbulanceFleet ambulances={ambulances} />
             <ActivityLog events={events} />
           </div>
